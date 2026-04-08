@@ -47,6 +47,63 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_messages: {
+        Row: {
+          chat_type: string
+          content: string
+          created_at: string
+          id: string
+          role: string
+          sport_context: string | null
+          user_id: string
+        }
+        Insert: {
+          chat_type?: string
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          sport_context?: string | null
+          user_id: string
+        }
+        Update: {
+          chat_type?: string
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          sport_context?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fan_sports: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          sport_name: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          sport_name: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          sport_name?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
       fans: {
         Row: {
           created_at: string
@@ -76,6 +133,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
           avatar_url: string | null
           created_at: string
           display_name: string | null
@@ -84,8 +142,10 @@ export type Database = {
           updated_at: string
           user_id: string
           user_type: Database["public"]["Enums"]["user_type"]
+          username: string | null
         }
         Insert: {
+          age?: number | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -94,8 +154,10 @@ export type Database = {
           updated_at?: string
           user_id: string
           user_type?: Database["public"]["Enums"]["user_type"]
+          username?: string | null
         }
         Update: {
+          age?: number | null
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
@@ -104,6 +166,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           user_type?: Database["public"]["Enums"]["user_type"]
+          username?: string | null
         }
         Relationships: []
       }

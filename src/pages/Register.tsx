@@ -20,24 +20,29 @@ export default function Register() {
   const initialType = (searchParams.get("type") as UserType) || "fan";
 
   const [userType, setUserType] = useState<UserType>(initialType);
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [age, setAge] = useState("");
   const [sportType, setSportType] = useState("");
   const [favoriteTeam, setFavoriteTeam] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!username.trim()) return;
     setLoading(true);
     try {
-      await signUp(email, password, name);
+      const fakeEmail = `${username.toLowerCase().trim()}@sportai.local`;
+      await signUp(fakeEmail, password, name);
 
-      // Wait for session then create role-specific record
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        // Update profile with user type
-        await supabase.from("profiles").update({ user_type: userType }).eq("user_id", session.user.id);
+        await supabase.from("profiles").update({
+          user_type: userType,
+          username: username.trim(),
+          age: age ? parseInt(age) : null,
+        }).eq("user_id", session.user.id);
 
         if (userType === "athlete") {
           await supabase.from("athletes").insert({
@@ -70,7 +75,6 @@ export default function Register() {
           <h1 className="font-display text-2xl font-bold text-foreground">{t("auth.register")}</h1>
         </div>
 
-        {/* Type toggle */}
         <div className="flex rounded-lg bg-secondary p-1 mb-6">
           {(["fan", "athlete"] as UserType[]).map((type) => (
             <button
@@ -93,13 +97,19 @@ export default function Register() {
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 bg-secondary border-border" />
           </div>
           <div>
-            <Label htmlFor="email" className="text-foreground">{t("auth.email")}</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1 bg-secondary border-border" />
+            <Label htmlFor="username" className="text-foreground">{t("auth.username")}</Label>
+            <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} required className="mt-1 bg-secondary border-border" />
           </div>
           <div>
             <Label htmlFor="password" className="text-foreground">{t("auth.password")}</Label>
             <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="mt-1 bg-secondary border-border" />
           </div>
+          {userType === "athlete" && (
+            <div>
+              <Label htmlFor="age" className="text-foreground">{t("auth.age")}</Label>
+              <Input id="age" type="number" min={10} max={99} value={age} onChange={(e) => setAge(e.target.value)} required className="mt-1 bg-secondary border-border" />
+            </div>
+          )}
           <div>
             <Label htmlFor="sport" className="text-foreground">{t("auth.sport")}</Label>
             <select
@@ -107,6 +117,7 @@ export default function Register() {
               value={sportType}
               onChange={(e) => setSportType(e.target.value)}
               className="mt-1 w-full rounded-md bg-secondary border border-border text-foreground px-3 py-2 text-sm"
+              required={userType === "athlete"}
             >
               <option value="">--</option>
               {sportCategories.map((s) => (

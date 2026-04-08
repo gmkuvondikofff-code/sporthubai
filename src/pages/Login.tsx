@@ -12,7 +12,7 @@ export default function Login() {
   const { signIn } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +20,8 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     try {
-      await signIn(email, password);
+      // Use username as fake email for Supabase auth
+      await signIn(`${username.toLowerCase().trim()}@sportai.local`, password);
       navigate("/dashboard");
     } catch (err: any) {
       toast.error(err.message || "Login failed");
@@ -38,8 +39,8 @@ export default function Login() {
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="email" className="text-foreground">{t("auth.email")}</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="mt-1 bg-secondary border-border" />
+            <Label htmlFor="username" className="text-foreground">{t("auth.username")}</Label>
+            <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} required className="mt-1 bg-secondary border-border" />
           </div>
           <div>
             <Label htmlFor="password" className="text-foreground">{t("auth.password")}</Label>
