@@ -22,7 +22,8 @@ export default function Register() {
   const [userType, setUserType] = useState<UserType>(initialType);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [age, setAge] = useState("");
   const [sportType, setSportType] = useState("");
   const [favoriteTeam, setFavoriteTeam] = useState("");
@@ -34,7 +35,8 @@ export default function Register() {
     setLoading(true);
     try {
       const fakeEmail = `${username.toLowerCase().trim()}@sportai.local`;
-      await signUp(fakeEmail, password, name);
+      const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      await signUp(fakeEmail, password, fullName);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -93,8 +95,12 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name" className="text-foreground">{t("auth.name")}</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 bg-secondary border-border" />
+            <Label htmlFor="firstName" className="text-foreground">{t("auth.firstName")}</Label>
+            <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="mt-1 bg-secondary border-border" />
+          </div>
+          <div>
+            <Label htmlFor="lastName" className="text-foreground">{t("auth.lastName")}</Label>
+            <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="mt-1 bg-secondary border-border" />
           </div>
           <div>
             <Label htmlFor="username" className="text-foreground">{t("auth.username")}</Label>
