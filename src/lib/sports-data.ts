@@ -6,6 +6,7 @@ import swimmingImg from "@/assets/sports/swimming.jpg";
 import chessImg from "@/assets/sports/chess.jpg";
 import mmaImg from "@/assets/sports/mma.jpg";
 import athleticsImg from "@/assets/sports/athletics.jpg";
+import tableTennisImg from "@/assets/sports/table-tennis.jpg";
 
 export interface SportCategory {
   id: string;
@@ -20,6 +21,7 @@ export const sportCategories: SportCategory[] = [
   { id: "football", name: "Football", nameUz: "Futbol", nameRu: "Футбол", image: footballImg, icon: "⚽" },
   { id: "basketball", name: "Basketball", nameUz: "Basketbol", nameRu: "Баскетбол", image: basketballImg, icon: "🏀" },
   { id: "tennis", name: "Tennis", nameUz: "Tennis", nameRu: "Теннис", image: tennisImg, icon: "🎾" },
+  { id: "table-tennis", name: "Table Tennis", nameUz: "Stol tennisi", nameRu: "Настольный теннис", image: tableTennisImg, icon: "🏓" },
   { id: "boxing", name: "Boxing", nameUz: "Boks", nameRu: "Бокс", image: boxingImg, icon: "🥊" },
   { id: "swimming", name: "Swimming", nameUz: "Suzish", nameRu: "Плавание", image: swimmingImg, icon: "🏊" },
   { id: "chess", name: "Chess", nameUz: "Shaxmat", nameRu: "Шахматы", image: chessImg, icon: "♟️" },
