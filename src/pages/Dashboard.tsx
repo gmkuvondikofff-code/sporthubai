@@ -204,7 +204,7 @@ export default function Dashboard() {
                 <SportCard
                   key={sport.id}
                   sport={sport}
-                  onClick={() => setActiveSportChat(sport.name)}
+                  onClick={() => navigate(`/sport/${sport.id}`)}
                 />
               ))}
               {fanSports.map((fs) => (
