@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 
 interface Profile {
   display_name: string | null;
-  user_type: "fan" | "athlete";
+  user_type: "fan" | "athlete" | "tt_player";
   username: string | null;
 }
 
@@ -54,7 +54,13 @@ export default function Dashboard() {
       .select("display_name, user_type, username")
       .eq("user_id", user.id)
       .single();
-    if (p) setProfile(p as Profile);
+    if (p) {
+      setProfile(p as Profile);
+      if (p.user_type === "tt_player") {
+        navigate("/tt-hub", { replace: true });
+        return;
+      }
+    }
 
     if (p?.user_type === "athlete") {
       const { data: a } = await supabase

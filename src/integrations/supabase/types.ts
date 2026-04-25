@@ -202,6 +202,42 @@ export type Database = {
           },
         ]
       }
+      tt_players: {
+        Row: {
+          age: number | null
+          created_at: string
+          goals: string | null
+          id: string
+          level: string
+          total_xp: number
+          training_streak: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string
+          goals?: string | null
+          id?: string
+          level?: string
+          total_xp?: number
+          training_streak?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          created_at?: string
+          goals?: string | null
+          id?: string
+          level?: string
+          total_xp?: number
+          training_streak?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -235,7 +271,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
-      user_type: "fan" | "athlete"
+      user_type: "fan" | "athlete" | "tt_player"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -364,7 +400,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
-      user_type: ["fan", "athlete"],
+      user_type: ["fan", "athlete", "tt_player"],
     },
   },
 } as const
