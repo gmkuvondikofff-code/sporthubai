@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/hooks/useLanguage";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import {
   Activity, Brain, Smile, Users, Trophy, Target, Flame,
   Calendar, ChevronRight, Award, Zap, MessageCircle, X,
 } from "lucide-react";
+import { getUpcomingCompetitions, formatCountdown } from "@/lib/tt-competitions";
 
 interface TTProfile {
   display_name: string | null;
@@ -37,10 +38,10 @@ const skills = [
 ];
 
 const sessions = [
-  { titleKey: "tt.tools", descUz: "Jihozlar va anjomlar", descRu: "Инвентарь и снаряжение" },
-  { titleKey: "tt.methods", descUz: "Amaliy mashqlar", descRu: "Практические упражнения" },
-  { titleKey: "tt.tactics", descUz: "Forehand, backhand va boshqalar", descRu: "Форхенд, бэкхенд и др." },
-  { titleKey: "tt.miniTour", descUz: "Musobaqalar va o'yinlar", descRu: "Соревнования и игры" },
+  { titleKey: "tt.tools", route: "tools", descUz: "Jihozlar va anjomlar", descRu: "Инвентарь и снаряжение", descEn: "Equipment & gear" },
+  { titleKey: "tt.methods", route: "methods", descUz: "Amaliy mashqlar", descRu: "Практические упражнения", descEn: "Practical drills" },
+  { titleKey: "tt.tactics", route: "tactics", descUz: "Forehand, backhand va boshqalar", descRu: "Форхенд, бэкхенд и др.", descEn: "Forehand, backhand & more" },
+  { titleKey: "tt.miniTour", route: "mini-tour", descUz: "Musobaqalar va o'yinlar", descRu: "Соревнования и игры", descEn: "Tournaments & matches" },
 ];
 
 export default function TableTennisHub() {
@@ -50,6 +51,15 @@ export default function TableTennisHub() {
   const [profile, setProfile] = useState<TTProfile | null>(null);
   const [tt, setTt] = useState<TTData | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const nextComp = useMemo(() => getUpcomingCompetitions(now)[0], [now]);
+  const cd = nextComp ? formatCountdown(new Date(nextComp.date), now) : null;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -128,7 +138,7 @@ export default function TableTennisHub() {
               <div className="h-2 rounded-full bg-secondary overflow-hidden">
                 <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60" style={{ width: "60%" }} />
               </div>
-              <Button variant="ember" size="sm" className="w-full mt-4">
+              <Button variant="ember" size="sm" className="w-full mt-4" onClick={() => navigate("/tt-hub/section/training")}>
                 {t("tt.continue")} <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
@@ -145,6 +155,51 @@ export default function TableTennisHub() {
             </div>
           </div>
         </div>
+
+        {/* Upcoming Competition Card */}
+        {nextComp && cd && (
+          <Link to="/tt-hub/competitions" className="block">
+            <div className="glass-card rounded-2xl p-5 border border-primary/30 hover:border-primary/60 transition-all">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    <span className="text-xs uppercase tracking-wider text-primary font-medium">
+                      {lang === "ru" ? "Ближайшее соревнование" : lang === "en" ? "Next competition" : "Yaqin musobaqa"}
+                    </span>
+                  </div>
+                  <h3 className="font-display font-bold text-foreground leading-snug">{nextComp.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{nextComp.city} • {nextComp.district}</p>
+                </div>
+                <div className="flex items-center gap-2 text-foreground tabular-nums">
+                  <div className="text-center">
+                    <div className="font-display text-xl font-bold">{String(cd.days).padStart(2, "0")}</div>
+                    <div className="text-[9px] uppercase text-muted-foreground">{lang === "ru" ? "дн" : lang === "en" ? "d" : "kun"}</div>
+                  </div>
+                  <span className="text-primary">:</span>
+                  <div className="text-center">
+                    <div className="font-display text-xl font-bold">{String(cd.hours).padStart(2, "0")}</div>
+                    <div className="text-[9px] uppercase text-muted-foreground">{lang === "ru" ? "ч" : lang === "en" ? "h" : "soat"}</div>
+                  </div>
+                  <span className="text-primary">:</span>
+                  <div className="text-center">
+                    <div className="font-display text-xl font-bold">{String(cd.minutes).padStart(2, "0")}</div>
+                    <div className="text-[9px] uppercase text-muted-foreground">{lang === "ru" ? "мин" : lang === "en" ? "m" : "daq"}</div>
+                  </div>
+                  <span className="text-primary">:</span>
+                  <div className="text-center">
+                    <div className="font-display text-xl font-bold">{String(cd.seconds).padStart(2, "0")}</div>
+                    <div className="text-[9px] uppercase text-muted-foreground">{lang === "ru" ? "сек" : lang === "en" ? "s" : "son"}</div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-end text-xs text-primary font-medium">
+                {lang === "ru" ? "Все соревнования" : lang === "en" ? "All competitions" : "Barcha musobaqalar"}
+                <ChevronRight className="h-4 w-4" />
+              </div>
+            </div>
+          </Link>
+        )}
 
         {/* Skill metrics 2x2 */}
         <div>
@@ -175,12 +230,16 @@ export default function TableTennisHub() {
             </div>
             <ul className="space-y-3">
               {sessions.map((s) => (
-                <li key={s.titleKey} className="flex items-center justify-between p-3 rounded-lg bg-secondary/40 hover:bg-secondary transition-colors cursor-pointer">
+                <li
+                  key={s.titleKey}
+                  onClick={() => navigate(`/tt-hub/section/${s.route}`)}
+                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/40 hover:bg-secondary transition-colors cursor-pointer"
+                >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center text-lg">🏓</div>
                     <div>
                       <p className="text-sm font-semibold text-foreground">{t(s.titleKey)}</p>
-                      <p className="text-xs text-muted-foreground">{lang === "ru" ? s.descRu : s.descUz}</p>
+                      <p className="text-xs text-muted-foreground">{lang === "ru" ? s.descRu : lang === "en" ? s.descEn : s.descUz}</p>
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -216,7 +275,9 @@ export default function TableTennisHub() {
               </p>
               <div className="flex justify-between items-center mt-2">
                 <span className="text-xs text-muted-foreground">0 / 20</span>
-                <Button size="sm" variant="ember">{lang === "ru" ? "Готово" : lang === "en" ? "Done" : "Bajarish"}</Button>
+                <Button size="sm" variant="ember" onClick={() => navigate("/tt-hub/section/daily-task")}>
+                  {lang === "ru" ? "Выполнить" : lang === "en" ? "Do it" : "Bajarish"}
+                </Button>
               </div>
             </div>
           </div>
