@@ -17,6 +17,7 @@ import AdminVerifyPin from "./pages/AdminVerifyPin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProtected from "./components/admin/AdminProtected";
 import SportPage from "./pages/SportPage";
+import TableTennisHub from "./pages/TableTennisHub";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
                 <Route path="/register" element={<Register />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/sport/:sportId" element={<SportPage />} />
+                <Route path="/tt-hub" element={<TableTennisHub />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/admin/verify-pin" element={<AdminVerifyPin />} />
