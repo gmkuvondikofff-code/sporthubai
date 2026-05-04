@@ -513,6 +513,7 @@ export default function TTGame3D() {
   const [opponent, setOpponent] = useState(() => COUNTRIES[1 + Math.floor(Math.random() * (COUNTRIES.length - 1))]);
   const [difficulty, setDifficulty] = useState(1);
   const [winner, setWinner] = useState<"player" | "ai" | null>(null);
+  const [matchStarted, setMatchStarted] = useState(false);
 
   const handleScore = (who: "player" | "ai") => {
     const s = stateRef.current;
@@ -534,6 +535,7 @@ export default function TTGame3D() {
     stateRef.current = makeServeState("player");
     setWinner(null);
     setOpponent(COUNTRIES[1 + Math.floor(Math.random() * (COUNTRIES.length - 1))]);
+    setMatchStarted(false);
     force((v) => v + 1);
   };
 
@@ -595,6 +597,7 @@ export default function TTGame3D() {
               difficulty={difficulty}
               opponentSkill={opponent.skill}
               onUpdate={() => force((v) => v + 1)}
+              active={matchStarted && !winner}
             />
           </Suspense>
         </Canvas>
