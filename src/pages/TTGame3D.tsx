@@ -269,12 +269,42 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     s.playerX = THREE.MathUtils.lerp(s.playerX, targetX, 0.35);
     s.playerZ = THREE.MathUtils.lerp(s.playerZ, targetZ, 0.30);
     // height oscillates slightly with z (player crouches when reaching forward)
-    s.playerY = TABLE.surfaceY + 0.18 + (s.playerZ - PLAYER_Z_MIN) * 0.02;
+    s.playerY = TABLE.surfaceY + 0.06 + (s.playerZ - PLAYER_Z_MIN) * 0.015;
     s.playerVel.set(
       (s.playerX - s.playerPrev.x) / dt,
       (s.playerY - s.playerPrev.y) / dt,
       (s.playerZ - s.playerPrev.z) / dt,
     );
+
+    // ======= Waiting-for-serve: ball is held stationary above server's paddle =======
+    if (s.waitingForServe) {
+      if (s.serving === "player") {
+        // Glue ball just above player's paddle
+        s.ballPos.set(s.playerX, s.playerY + 0.18, s.playerZ - 0.05);
+        s.ballVel.set(0, 0, 0);
+        // If player swings forward quickly, launch the serve
+        if (s.playerVel.z < -1.2) {
+          s.ballVel.set(s.playerVel.x * 0.6, 1.6, -3.2 + s.playerVel.z * 0.4);
+          s.ballSpin = 0.5;
+          s.hitByPlayerLast = true;
+          s.waitingForServe = false;
+          s.lastHitT = performance.now();
+        }
+      } else {
+        // AI auto-serves after a short delay
+        s.aiSwingCooldown -= dt;
+        s.ballPos.set(s.aiX, TABLE.surfaceY + 0.22, s.aiZ + 0.05);
+        s.ballVel.set(0, 0, 0);
+        if (s.aiSwingCooldown <= -0.6) {
+          s.ballVel.set((Math.random() - 0.5) * 0.6, 1.6, 3.2);
+          s.ballSpin = 0.5;
+          s.hitByAILast = true;
+          s.waitingForServe = false;
+          s.lastHitT = performance.now();
+        }
+      }
+      // still update transforms below
+    }
 
     // ======= AI movement (predictive) =======
     s.aiSwingCooldown = Math.max(0, s.aiSwingCooldown - dt);
@@ -292,7 +322,8 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       s.aiTargetX = THREE.MathUtils.lerp(s.aiTargetX, s.ballPos.x * 0.4, 0.05);
       s.aiTargetZ = -TABLE.l / 2 - 0.30;
     }
-    const aiSpeed = 2.5 + difficulty * 1.6 + opponentSkill * 1.2; // m/s
+    // Slower AI movement → easier
+    const aiSpeed = 1.6 + difficulty * 1.0 + opponentSkill * 0.7; // m/s
     const dx = s.aiTargetX - s.aiX;
     const dz = s.aiTargetZ - s.aiZ;
     const distXZ = Math.hypot(dx, dz);
@@ -303,6 +334,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     }
 
     // ======= Ball physics =======
+    if (!s.waitingForServe) {
     // gravity
     s.ballVel.y -= 9.8 * dt;
     // light air drag
@@ -313,6 +345,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     s.ballSpin *= Math.exp(-0.4 * dt);
 
     s.ballPos.addScaledVector(s.ballVel, dt);
+    }
 
     // ======= Table bounce =======
     const tableTopY = TABLE.surfaceY;
@@ -349,12 +382,13 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     }
 
     // ======= Player paddle collision =======
-    {
+    if (!s.waitingForServe) {
       const dx2 = s.ballPos.x - s.playerX;
       const dy2 = s.ballPos.y - s.playerY;
       const dz2 = s.ballPos.z - s.playerZ;
-      const within = Math.sqrt(dx2 * dx2 + dy2 * dy2) < PADDLE.r + BALL_R;
-      const closeZ = Math.abs(dz2) < 0.06 + Math.abs(s.playerVel.z) * dt;
+      // Generous hit volume so the paddle reliably contacts the ball
+      const within = Math.sqrt(dx2 * dx2 + dy2 * dy2) < PADDLE.r + BALL_R + 0.05;
+      const closeZ = Math.abs(dz2) < 0.14 + Math.abs(s.playerVel.z) * dt;
       const movingToward = s.ballVel.z > 0; // ball traveling toward player (+Z)
       if (within && closeZ && movingToward) {
         // Reflect Z, add player's swing
@@ -378,7 +412,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     }
 
     // ======= AI paddle collision =======
-    {
+    if (!s.waitingForServe) {
       const aiHitZ = -TABLE.l / 2 - 0.18;
       // AI swings when ball is close to its hit plane
       const distZ = Math.abs(s.ballPos.z - s.aiZ);
@@ -395,15 +429,16 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         const y0 = s.ballPos.y;
         // Use projectile from current position to landing
         // Choose flight time scaled by difficulty (shorter = faster ball)
-        const skill = 0.7 + opponentSkill * 0.5 + difficulty * 0.18;
-        const flightT = THREE.MathUtils.clamp(0.45 / skill, 0.22, 0.55);
+        // Easier AI: longer flight time → slower, more reachable balls
+        const skill = 0.45 + opponentSkill * 0.35 + difficulty * 0.15;
+        const flightT = THREE.MathUtils.clamp(0.60 / Math.max(0.4, skill), 0.35, 0.85);
         const vz = (aimZ - s.ballPos.z) / flightT;
         const vx = (aimX - s.ballPos.x) / flightT;
         // vy from y0 + vy*t - 0.5*g*t^2 = surfaceY + BALL_R, but allow rise then fall
         const vy = ((TABLE.surfaceY + BALL_R) - y0 + 0.5 * 9.8 * flightT * flightT) / flightT;
         s.ballVel.set(vx, vy, vz);
         // Add error based on (1 - skill)
-        const err = (1 - skill) * 0.6;
+        const err = (1 - skill) * 1.2;
         s.ballVel.x += (Math.random() - 0.5) * err * 2;
         s.ballVel.z += (Math.random() - 0.5) * err * 2;
         s.ballSpin = (Math.random() * 1.5 + 0.5) * (Math.random() < 0.7 ? 1 : -1) * skill;
@@ -411,13 +446,14 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         s.bouncedOnAISide = false;
         s.hitByPlayerLast = false;
         s.hitByAILast = true;
-        s.aiSwingCooldown = 0.25;
+        s.aiSwingCooldown = 0.4;
         s.lastHitT = performance.now();
       }
     }
 
     // ======= Score detection =======
     let scorer: "player" | "ai" | null = null;
+    if (!s.waitingForServe) {
 
     // Ball fell below surface beyond / off the table → use rules
     if (s.ballPos.y < TABLE.surfaceY - 0.5 || s.ballPos.z > TABLE.l / 2 + 1.5 || s.ballPos.z < -TABLE.l / 2 - 1.5 || Math.abs(s.ballPos.x) > TABLE.w / 2 + 1.8) {
@@ -438,6 +474,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     if (scorer) {
       onScore(scorer);
       return;
+    }
     }
 
     // ======= Apply transforms =======
