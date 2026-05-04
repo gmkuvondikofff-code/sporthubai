@@ -201,6 +201,36 @@ export default function TableTennisHub() {
           </Link>
         )}
 
+        {/* 3D Game Card */}
+        <div
+          onClick={() => navigate("/tt-hub/game")}
+          className="glass-card rounded-2xl p-5 border border-primary/30 hover:border-primary/60 transition-all cursor-pointer relative overflow-hidden group"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/15 via-transparent to-amber-500/15 opacity-60 group-hover:opacity-100 transition-opacity" />
+          <div className="relative flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Gamepad2 className="h-7 w-7 text-primary" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display font-bold text-foreground">
+                    {lang === "ru" ? "3D Виртуальный матч" : lang === "en" ? "3D Virtual Match" : "3D Virtual o'yin"}
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold uppercase">New</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  🇺🇿 vs 🌍 {lang === "ru" ? "Чемпионат стран" : lang === "en" ? "Country championship" : "Davlatlar chempionati"}
+                </p>
+              </div>
+            </div>
+            <Button variant="ember" size="sm">
+              {lang === "ru" ? "Играть" : lang === "en" ? "Play" : "O'ynash"}
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+
         {/* Skill metrics 2x2 */}
         <div>
           <h3 className="font-display text-lg font-semibold text-foreground mb-3">
