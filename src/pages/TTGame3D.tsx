@@ -57,6 +57,7 @@ interface GameState {
   hitByAILast: boolean;
   serving: "player" | "ai";
   paused: boolean;
+  waitingForServe: boolean;  // ball is held stationary until user/AI launches it
   rallyStart: number;
   lastHitT: number;
 }
@@ -66,15 +67,15 @@ function makeServeState(serving: "player" | "ai" = "player"): GameState {
   return {
     ballPos: new THREE.Vector3(
       (Math.random() - 0.5) * 0.4,
-      TABLE.surfaceY + 0.25,
+      TABLE.surfaceY + 0.22,
       serving === "player" ? TABLE.l / 2 - 0.15 : -TABLE.l / 2 + 0.15,
     ),
-    ballVel: new THREE.Vector3((Math.random() - 0.5) * 0.6, 1.5, dir * 3.2),
+    ballVel: new THREE.Vector3(0, 0, 0),
     ballSpin: 0,
     playerX: 0,
-    playerY: TABLE.surfaceY + 0.18,
+    playerY: TABLE.surfaceY + 0.06,
     playerZ: TABLE.l / 2 + 0.25,
-    playerPrev: new THREE.Vector3(0, TABLE.surfaceY + 0.18, TABLE.l / 2 + 0.25),
+    playerPrev: new THREE.Vector3(0, TABLE.surfaceY + 0.06, TABLE.l / 2 + 0.25),
     playerVel: new THREE.Vector3(),
     aiX: 0,
     aiZ: -TABLE.l / 2 - 0.25,
@@ -83,12 +84,13 @@ function makeServeState(serving: "player" | "ai" = "player"): GameState {
     aiSwingCooldown: 0,
     scorePlayer: 0,
     scoreAI: 0,
-    bouncedOnPlayerSide: serving !== "player",
-    bouncedOnAISide: serving === "player",
-    hitByPlayerLast: serving === "player",
-    hitByAILast: serving === "ai",
+    bouncedOnPlayerSide: false,
+    bouncedOnAISide: false,
+    hitByPlayerLast: false,
+    hitByAILast: false,
     serving,
     paused: false,
+    waitingForServe: true,
     rallyStart: performance.now(),
     lastHitT: performance.now(),
   };
