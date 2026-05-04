@@ -229,9 +229,10 @@ interface SceneProps {
   difficulty: number; // 0..2
   opponentSkill: number;
   onUpdate: () => void;
+  active: boolean;
 }
 
-function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdate }: SceneProps) {
+function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdate, active }: SceneProps) {
   const ballRef = useRef<THREE.Mesh>(null!);
   const ballShadowRef = useRef<THREE.Mesh>(null!);
   const playerRef = useRef<THREE.Group>(null!);
@@ -251,7 +252,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.025);
     const s = stateRef.current;
-    if (s.paused) return;
+    if (s.paused || !active) return;
 
     // ======= INPUT → Player paddle target (X & Z) =======
     // input.x ∈ [-1,1] → paddle X across full court width
@@ -338,9 +339,11 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       s.ballPos.y > TABLE.surfaceY &&
       Math.abs(s.ballPos.x) < TABLE.w / 2 + 0.1
     ) {
-      s.ballVel.z *= -0.25;
-      s.ballVel.x *= 0.5;
-      s.ballVel.y *= 0.3;
+      // Net touched → instant point to opponent of last hitter
+      const netScorer: "player" | "ai" =
+        s.hitByPlayerLast ? "ai" : s.hitByAILast ? "player" : (s.serving === "player" ? "ai" : "player");
+      onScore(netScorer);
+      return;
     }
 
     // ======= Player paddle collision =======
@@ -357,12 +360,13 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         const swingY = s.playerVel.y;
         const swingX = s.playerVel.x;
         const baseSpeed = Math.abs(s.ballVel.z);
-        const power = baseSpeed * 0.55 + Math.max(0, -swingZ) * 1.4 + 4.0;
+        // Harder, snappier hits
+        const power = baseSpeed * 0.75 + Math.max(0, -swingZ) * 2.2 + 7.0;
         s.ballVel.z = -power;
-        s.ballVel.x = dx2 * 8 + swingX * 0.6;
-        s.ballVel.y = Math.max(1.6, dy2 * 5 + swingY * 0.8 + 2.2);
+        s.ballVel.x = dx2 * 10 + swingX * 0.8;
+        s.ballVel.y = Math.max(2.2, dy2 * 5 + swingY * 0.9 + 2.8);
         // Topspin from forward swing, backspin from upward chop
-        s.ballSpin = Math.max(-2.5, Math.min(2.5, -swingZ * 0.25 + swingY * -0.15));
+        s.ballSpin = Math.max(-3.5, Math.min(3.5, -swingZ * 0.35 + swingY * -0.2));
         s.bouncedOnPlayerSide = false;
         s.bouncedOnAISide = false;
         s.hitByPlayerLast = true;
@@ -389,8 +393,8 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         const y0 = s.ballPos.y;
         // Use projectile from current position to landing
         // Choose flight time scaled by difficulty (shorter = faster ball)
-        const skill = 0.6 + opponentSkill * 0.4 + difficulty * 0.15;
-        const flightT = THREE.MathUtils.clamp(0.55 / skill, 0.30, 0.75);
+        const skill = 0.7 + opponentSkill * 0.5 + difficulty * 0.18;
+        const flightT = THREE.MathUtils.clamp(0.45 / skill, 0.22, 0.55);
         const vz = (aimZ - s.ballPos.z) / flightT;
         const vx = (aimX - s.ballPos.x) / flightT;
         // vy from y0 + vy*t - 0.5*g*t^2 = surfaceY + BALL_R, but allow rise then fall
@@ -509,6 +513,7 @@ export default function TTGame3D() {
   const [opponent, setOpponent] = useState(() => COUNTRIES[1 + Math.floor(Math.random() * (COUNTRIES.length - 1))]);
   const [difficulty, setDifficulty] = useState(1);
   const [winner, setWinner] = useState<"player" | "ai" | null>(null);
+  const [matchStarted, setMatchStarted] = useState(false);
 
   const handleScore = (who: "player" | "ai") => {
     const s = stateRef.current;
@@ -530,6 +535,7 @@ export default function TTGame3D() {
     stateRef.current = makeServeState("player");
     setWinner(null);
     setOpponent(COUNTRIES[1 + Math.floor(Math.random() * (COUNTRIES.length - 1))]);
+    setMatchStarted(false);
     force((v) => v + 1);
   };
 
@@ -591,6 +597,7 @@ export default function TTGame3D() {
               difficulty={difficulty}
               opponentSkill={opponent.skill}
               onUpdate={() => force((v) => v + 1)}
+              active={matchStarted && !winner}
             />
           </Suspense>
         </Canvas>
@@ -674,6 +681,84 @@ export default function TTGame3D() {
                 {lang === "ru" ? "Выйти" : lang === "en" ? "Exit" : "Chiqish"}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Championship Lobby — before match starts */}
+      {!matchStarted && !winner && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/85 backdrop-blur-sm overflow-y-auto py-6">
+          <div className="glass-card rounded-2xl p-6 max-w-2xl w-[92%] mx-4">
+            <div className="text-center mb-5">
+              <Trophy className="h-10 w-10 text-amber-500 mx-auto mb-2" />
+              <h2 className="font-display text-2xl font-bold text-foreground">
+                {lang === "ru" ? "Чемпионат стран" : lang === "en" ? "Country Championship" : "Davlatlar chempionati"}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                {lang === "ru" ? "Выберите соперника и начните матч (до 11)" : lang === "en" ? "Pick an opponent and start the match (first to 11)" : "Raqibni tanlang va o'yinni boshlang (11gacha)"}
+              </p>
+            </div>
+
+            {/* Versus header */}
+            <div className="flex items-center justify-around mb-5">
+              <div className="text-center">
+                <div className="text-5xl">{country.flag}</div>
+                <div className="font-display font-bold text-foreground mt-1">{country.name}</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  {lang === "ru" ? "Вы" : lang === "en" ? "You" : "Siz"}
+                </div>
+              </div>
+              <div className="font-display text-2xl text-primary font-bold">VS</div>
+              <div className="text-center">
+                <div className="text-5xl">{opponent.flag}</div>
+                <div className="font-display font-bold text-foreground mt-1">{opponent.name}</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  {lang === "ru" ? "Соперник" : lang === "en" ? "Opponent" : "Raqib"} • ★ {opponent.skill.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            {/* Other participating countries */}
+            <div>
+              <div className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">
+                {lang === "ru" ? "Участники турнира — нажмите чтобы сменить соперника" : lang === "en" ? "Tournament participants — tap to change opponent" : "Ishtirokchilar — raqibni o'zgartirish uchun bosing"}
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {COUNTRIES.filter((c) => c.code !== "UZ").map((c) => (
+                  <button
+                    key={c.code}
+                    onClick={() => setOpponent(c)}
+                    className={`flex flex-col items-center p-3 rounded-xl border transition-all ${
+                      opponent.code === c.code
+                        ? "border-primary bg-primary/15"
+                        : "border-border bg-secondary/30 hover:border-primary/50"
+                    }`}
+                  >
+                    <div className="text-2xl">{c.flag}</div>
+                    <div className="text-[11px] text-foreground font-medium mt-1 truncate w-full text-center">{c.name}</div>
+                    <div className="text-[9px] text-amber-500">★ {c.skill.toFixed(2)}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Difficulty */}
+            <div className="mt-5">
+              <div className="text-xs text-muted-foreground mb-2 uppercase tracking-wider">
+                {lang === "ru" ? "Сложность" : lang === "en" ? "Difficulty" : "Daraja"}
+              </div>
+              <div className="flex gap-2">
+                {[0, 1, 2].map((d) => (
+                  <Button key={d} size="sm" className="flex-1" variant={difficulty === d ? "ember" : "outline"} onClick={() => setDifficulty(d)}>
+                    {["Easy", "Medium", "Hard"][d]}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <Button variant="ember" className="w-full mt-5" size="lg" onClick={() => setMatchStarted(true)}>
+              🏓 {lang === "ru" ? "Начать матч" : lang === "en" ? "Start match" : "Boshlash"}
+            </Button>
           </div>
         </div>
       )}
