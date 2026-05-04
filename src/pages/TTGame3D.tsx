@@ -229,9 +229,10 @@ interface SceneProps {
   difficulty: number; // 0..2
   opponentSkill: number;
   onUpdate: () => void;
+  active: boolean;
 }
 
-function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdate }: SceneProps) {
+function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdate, active }: SceneProps) {
   const ballRef = useRef<THREE.Mesh>(null!);
   const ballShadowRef = useRef<THREE.Mesh>(null!);
   const playerRef = useRef<THREE.Group>(null!);
@@ -251,7 +252,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.025);
     const s = stateRef.current;
-    if (s.paused) return;
+    if (s.paused || !active) return;
 
     // ======= INPUT → Player paddle target (X & Z) =======
     // input.x ∈ [-1,1] → paddle X across full court width
@@ -338,9 +339,11 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       s.ballPos.y > TABLE.surfaceY &&
       Math.abs(s.ballPos.x) < TABLE.w / 2 + 0.1
     ) {
-      s.ballVel.z *= -0.25;
-      s.ballVel.x *= 0.5;
-      s.ballVel.y *= 0.3;
+      // Net touched → instant point to opponent of last hitter
+      const netScorer: "player" | "ai" =
+        s.hitByPlayerLast ? "ai" : s.hitByAILast ? "player" : (s.serving === "player" ? "ai" : "player");
+      onScore(netScorer);
+      return;
     }
 
     // ======= Player paddle collision =======
@@ -357,12 +360,13 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         const swingY = s.playerVel.y;
         const swingX = s.playerVel.x;
         const baseSpeed = Math.abs(s.ballVel.z);
-        const power = baseSpeed * 0.55 + Math.max(0, -swingZ) * 1.4 + 4.0;
+        // Harder, snappier hits
+        const power = baseSpeed * 0.75 + Math.max(0, -swingZ) * 2.2 + 7.0;
         s.ballVel.z = -power;
-        s.ballVel.x = dx2 * 8 + swingX * 0.6;
-        s.ballVel.y = Math.max(1.6, dy2 * 5 + swingY * 0.8 + 2.2);
+        s.ballVel.x = dx2 * 10 + swingX * 0.8;
+        s.ballVel.y = Math.max(2.2, dy2 * 5 + swingY * 0.9 + 2.8);
         // Topspin from forward swing, backspin from upward chop
-        s.ballSpin = Math.max(-2.5, Math.min(2.5, -swingZ * 0.25 + swingY * -0.15));
+        s.ballSpin = Math.max(-3.5, Math.min(3.5, -swingZ * 0.35 + swingY * -0.2));
         s.bouncedOnPlayerSide = false;
         s.bouncedOnAISide = false;
         s.hitByPlayerLast = true;
@@ -389,8 +393,8 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         const y0 = s.ballPos.y;
         // Use projectile from current position to landing
         // Choose flight time scaled by difficulty (shorter = faster ball)
-        const skill = 0.6 + opponentSkill * 0.4 + difficulty * 0.15;
-        const flightT = THREE.MathUtils.clamp(0.55 / skill, 0.30, 0.75);
+        const skill = 0.7 + opponentSkill * 0.5 + difficulty * 0.18;
+        const flightT = THREE.MathUtils.clamp(0.45 / skill, 0.22, 0.55);
         const vz = (aimZ - s.ballPos.z) / flightT;
         const vx = (aimX - s.ballPos.x) / flightT;
         // vy from y0 + vy*t - 0.5*g*t^2 = surfaceY + BALL_R, but allow rise then fall
