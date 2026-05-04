@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Maximize2, Trophy } from "lucide-react";
+import { ArrowLeft, Maximize2, RotateCw, Trophy } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 
 // Real-ish ITTF dimensions (meters). 1 unit = 1m.
@@ -57,6 +57,7 @@ interface GameState {
   hitByAILast: boolean;
   serving: "player" | "ai";
   paused: boolean;
+  waitingForServe: boolean;  // ball is held stationary until user/AI launches it
   rallyStart: number;
   lastHitT: number;
 }
@@ -66,15 +67,15 @@ function makeServeState(serving: "player" | "ai" = "player"): GameState {
   return {
     ballPos: new THREE.Vector3(
       (Math.random() - 0.5) * 0.4,
-      TABLE.surfaceY + 0.25,
+      TABLE.surfaceY + 0.22,
       serving === "player" ? TABLE.l / 2 - 0.15 : -TABLE.l / 2 + 0.15,
     ),
-    ballVel: new THREE.Vector3((Math.random() - 0.5) * 0.6, 1.5, dir * 3.2),
+    ballVel: new THREE.Vector3(0, 0, 0),
     ballSpin: 0,
     playerX: 0,
-    playerY: TABLE.surfaceY + 0.18,
+    playerY: TABLE.surfaceY + 0.06,
     playerZ: TABLE.l / 2 + 0.25,
-    playerPrev: new THREE.Vector3(0, TABLE.surfaceY + 0.18, TABLE.l / 2 + 0.25),
+    playerPrev: new THREE.Vector3(0, TABLE.surfaceY + 0.06, TABLE.l / 2 + 0.25),
     playerVel: new THREE.Vector3(),
     aiX: 0,
     aiZ: -TABLE.l / 2 - 0.25,
@@ -83,12 +84,13 @@ function makeServeState(serving: "player" | "ai" = "player"): GameState {
     aiSwingCooldown: 0,
     scorePlayer: 0,
     scoreAI: 0,
-    bouncedOnPlayerSide: serving !== "player",
-    bouncedOnAISide: serving === "player",
-    hitByPlayerLast: serving === "player",
-    hitByAILast: serving === "ai",
+    bouncedOnPlayerSide: false,
+    bouncedOnAISide: false,
+    hitByPlayerLast: false,
+    hitByAILast: false,
     serving,
     paused: false,
+    waitingForServe: true,
     rallyStart: performance.now(),
     lastHitT: performance.now(),
   };
@@ -267,12 +269,41 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     s.playerX = THREE.MathUtils.lerp(s.playerX, targetX, 0.35);
     s.playerZ = THREE.MathUtils.lerp(s.playerZ, targetZ, 0.30);
     // height oscillates slightly with z (player crouches when reaching forward)
-    s.playerY = TABLE.surfaceY + 0.18 + (s.playerZ - PLAYER_Z_MIN) * 0.02;
+    s.playerY = TABLE.surfaceY + 0.06 + (s.playerZ - PLAYER_Z_MIN) * 0.015;
     s.playerVel.set(
       (s.playerX - s.playerPrev.x) / dt,
       (s.playerY - s.playerPrev.y) / dt,
       (s.playerZ - s.playerPrev.z) / dt,
     );
+
+    // ======= Waiting-for-serve: ball is held stationary above server's paddle =======
+    if (s.waitingForServe) {
+      if (s.serving === "player") {
+        // Glue ball just above player's paddle
+        s.ballPos.set(s.playerX, s.playerY + 0.18, s.playerZ - 0.05);
+        s.ballVel.set(0, 0, 0);
+        // If player swings forward quickly, launch the serve
+        if (s.playerVel.z < -1.2) {
+          s.ballVel.set(s.playerVel.x * 0.6, 1.6, -3.2 + s.playerVel.z * 0.4);
+          s.ballSpin = 0.5;
+          s.hitByPlayerLast = true;
+          s.waitingForServe = false;
+          s.lastHitT = performance.now();
+        }
+      } else {
+        // AI auto-serves after a short delay
+        s.ballPos.set(s.aiX, TABLE.surfaceY + 0.22, s.aiZ + 0.05);
+        s.ballVel.set(0, 0, 0);
+        if (performance.now() - s.rallyStart > 800) {
+          s.ballVel.set((Math.random() - 0.5) * 0.6, 1.6, 3.2);
+          s.ballSpin = 0.5;
+          s.hitByAILast = true;
+          s.waitingForServe = false;
+          s.lastHitT = performance.now();
+        }
+      }
+      // still update transforms below
+    }
 
     // ======= AI movement (predictive) =======
     s.aiSwingCooldown = Math.max(0, s.aiSwingCooldown - dt);
@@ -290,7 +321,8 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       s.aiTargetX = THREE.MathUtils.lerp(s.aiTargetX, s.ballPos.x * 0.4, 0.05);
       s.aiTargetZ = -TABLE.l / 2 - 0.30;
     }
-    const aiSpeed = 2.5 + difficulty * 1.6 + opponentSkill * 1.2; // m/s
+    // Slower AI movement → easier
+    const aiSpeed = 1.6 + difficulty * 1.0 + opponentSkill * 0.7; // m/s
     const dx = s.aiTargetX - s.aiX;
     const dz = s.aiTargetZ - s.aiZ;
     const distXZ = Math.hypot(dx, dz);
@@ -301,6 +333,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     }
 
     // ======= Ball physics =======
+    if (!s.waitingForServe) {
     // gravity
     s.ballVel.y -= 9.8 * dt;
     // light air drag
@@ -311,6 +344,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     s.ballSpin *= Math.exp(-0.4 * dt);
 
     s.ballPos.addScaledVector(s.ballVel, dt);
+    }
 
     // ======= Table bounce =======
     const tableTopY = TABLE.surfaceY;
@@ -347,12 +381,13 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     }
 
     // ======= Player paddle collision =======
-    {
+    if (!s.waitingForServe) {
       const dx2 = s.ballPos.x - s.playerX;
       const dy2 = s.ballPos.y - s.playerY;
       const dz2 = s.ballPos.z - s.playerZ;
-      const within = Math.sqrt(dx2 * dx2 + dy2 * dy2) < PADDLE.r + BALL_R;
-      const closeZ = Math.abs(dz2) < 0.06 + Math.abs(s.playerVel.z) * dt;
+      // Generous hit volume so the paddle reliably contacts the ball
+      const within = Math.sqrt(dx2 * dx2 + dy2 * dy2) < PADDLE.r + BALL_R + 0.05;
+      const closeZ = Math.abs(dz2) < 0.14 + Math.abs(s.playerVel.z) * dt;
       const movingToward = s.ballVel.z > 0; // ball traveling toward player (+Z)
       if (within && closeZ && movingToward) {
         // Reflect Z, add player's swing
@@ -376,7 +411,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     }
 
     // ======= AI paddle collision =======
-    {
+    if (!s.waitingForServe) {
       const aiHitZ = -TABLE.l / 2 - 0.18;
       // AI swings when ball is close to its hit plane
       const distZ = Math.abs(s.ballPos.z - s.aiZ);
@@ -393,15 +428,16 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         const y0 = s.ballPos.y;
         // Use projectile from current position to landing
         // Choose flight time scaled by difficulty (shorter = faster ball)
-        const skill = 0.7 + opponentSkill * 0.5 + difficulty * 0.18;
-        const flightT = THREE.MathUtils.clamp(0.45 / skill, 0.22, 0.55);
+        // Easier AI: longer flight time → slower, more reachable balls
+        const skill = 0.45 + opponentSkill * 0.35 + difficulty * 0.15;
+        const flightT = THREE.MathUtils.clamp(0.60 / Math.max(0.4, skill), 0.35, 0.85);
         const vz = (aimZ - s.ballPos.z) / flightT;
         const vx = (aimX - s.ballPos.x) / flightT;
         // vy from y0 + vy*t - 0.5*g*t^2 = surfaceY + BALL_R, but allow rise then fall
         const vy = ((TABLE.surfaceY + BALL_R) - y0 + 0.5 * 9.8 * flightT * flightT) / flightT;
         s.ballVel.set(vx, vy, vz);
         // Add error based on (1 - skill)
-        const err = (1 - skill) * 0.6;
+        const err = (1 - skill) * 1.2;
         s.ballVel.x += (Math.random() - 0.5) * err * 2;
         s.ballVel.z += (Math.random() - 0.5) * err * 2;
         s.ballSpin = (Math.random() * 1.5 + 0.5) * (Math.random() < 0.7 ? 1 : -1) * skill;
@@ -409,13 +445,14 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         s.bouncedOnAISide = false;
         s.hitByPlayerLast = false;
         s.hitByAILast = true;
-        s.aiSwingCooldown = 0.25;
+        s.aiSwingCooldown = 0.4;
         s.lastHitT = performance.now();
       }
     }
 
     // ======= Score detection =======
     let scorer: "player" | "ai" | null = null;
+    if (!s.waitingForServe) {
 
     // Ball fell below surface beyond / off the table → use rules
     if (s.ballPos.y < TABLE.surfaceY - 0.5 || s.ballPos.z > TABLE.l / 2 + 1.5 || s.ballPos.z < -TABLE.l / 2 - 1.5 || Math.abs(s.ballPos.x) > TABLE.w / 2 + 1.8) {
@@ -436,6 +473,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     if (scorer) {
       onScore(scorer);
       return;
+    }
     }
 
     // ======= Apply transforms =======
@@ -514,6 +552,7 @@ export default function TTGame3D() {
   const [difficulty, setDifficulty] = useState(1);
   const [winner, setWinner] = useState<"player" | "ai" | null>(null);
   const [matchStarted, setMatchStarted] = useState(false);
+  const [rotated, setRotated] = useState(false);
 
   const handleScore = (who: "player" | "ai") => {
     const s = stateRef.current;
@@ -578,10 +617,44 @@ export default function TTGame3D() {
     }
   };
 
+  const startMatch = () => {
+    setMatchStarted(true);
+    // Attempt fullscreen + landscape lock for an immersive experience
+    const el = containerRef.current;
+    if (el && !document.fullscreenElement) {
+      el.requestFullscreen?.().catch(() => {});
+    }
+    // @ts-ignore
+    if (screen.orientation && screen.orientation.lock) {
+      // @ts-ignore
+      screen.orientation.lock("landscape").catch(() => {
+        // Fallback: CSS rotate for devices that won't honor lock
+        if (window.innerHeight > window.innerWidth) setRotated(true);
+      });
+    } else if (window.innerHeight > window.innerWidth) {
+      setRotated(true);
+    }
+  };
+
   const s = stateRef.current;
 
   return (
     <div ref={containerRef} className="fixed inset-0 bg-black overflow-hidden touch-none">
+      <div
+        className="absolute inset-0"
+        style={
+          rotated
+            ? {
+                transform: "rotate(90deg)",
+                transformOrigin: "center center",
+                width: "100vh",
+                height: "100vw",
+                top: "calc((100vh - 100vw) / 2)",
+                left: "calc((100vw - 100vh) / 2)",
+              }
+            : undefined
+        }
+      >
       <div
         className="absolute inset-0"
         onPointerMove={onPointer}
@@ -627,14 +700,25 @@ export default function TTGame3D() {
           </div>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="pointer-events-auto bg-background/40 backdrop-blur"
-          onClick={goFullscreen}
-        >
-          <Maximize2 className="h-4 w-4" />
-        </Button>
+        <div className="flex gap-2 pointer-events-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-background/40 backdrop-blur"
+            onClick={() => setRotated((v) => !v)}
+            title="Rotate"
+          >
+            <RotateCw className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-background/40 backdrop-blur"
+            onClick={goFullscreen}
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Difficulty */}
@@ -654,10 +738,11 @@ export default function TTGame3D() {
 
       <div className="absolute bottom-3 right-3 z-10 text-xs text-white/70 pointer-events-none max-w-[210px] text-right leading-snug">
         {lang === "ru"
-          ? "Двигайте палец/мышь: влево-вправо — сторона, вверх-вниз — вперёд/назад. Резкое движение = удар."
+          ? "Резко смахните вперёд для подачи. Двигайте: ◀▶ сторона, ▲▼ вперёд/назад."
           : lang === "en"
-          ? "Move finger/mouse: left-right side, up-down forward/back. A quick swing = stronger shot."
+          ? "Swipe forward to serve. Move: ◀▶ side, ▲▼ forward/back."
           : "Barmoq/sichqonni harakatlantiring: chap-o'ng – yon, yuqori-past – oldinga/orqaga. Tezkor harakat = kuchli zarba."}
+      </div>
       </div>
 
       {/* Winner overlay */}
@@ -756,7 +841,7 @@ export default function TTGame3D() {
               </div>
             </div>
 
-            <Button variant="ember" className="w-full mt-5" size="lg" onClick={() => setMatchStarted(true)}>
+            <Button variant="ember" className="w-full mt-5" size="lg" onClick={startMatch}>
               🏓 {lang === "ru" ? "Начать матч" : lang === "en" ? "Start match" : "Boshlash"}
             </Button>
           </div>
