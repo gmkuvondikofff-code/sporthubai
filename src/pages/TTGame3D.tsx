@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Text } from "@react-three/drei";
 import * as THREE from "three";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Maximize2, Trophy } from "lucide-react";
@@ -424,11 +423,6 @@ export default function TTGame3D() {
         </div>
       )}
 
-      {/* Orbit controls hidden — but keep import alive (no-op) */}
-      <div className="hidden">
-        <OrbitControls />
-        <Text>x</Text>
-      </div>
     </div>
   );
 }
