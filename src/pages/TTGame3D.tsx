@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Maximize2, Trophy } from "lucide-react";
+import { ArrowLeft, Maximize2, RotateCw, Trophy } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 
 // Real-ish ITTF dimensions (meters). 1 unit = 1m.
@@ -552,6 +552,7 @@ export default function TTGame3D() {
   const [difficulty, setDifficulty] = useState(1);
   const [winner, setWinner] = useState<"player" | "ai" | null>(null);
   const [matchStarted, setMatchStarted] = useState(false);
+  const [rotated, setRotated] = useState(false);
 
   const handleScore = (who: "player" | "ai") => {
     const s = stateRef.current;
@@ -616,10 +617,44 @@ export default function TTGame3D() {
     }
   };
 
+  const startMatch = () => {
+    setMatchStarted(true);
+    // Attempt fullscreen + landscape lock for an immersive experience
+    const el = containerRef.current;
+    if (el && !document.fullscreenElement) {
+      el.requestFullscreen?.().catch(() => {});
+    }
+    // @ts-ignore
+    if (screen.orientation && screen.orientation.lock) {
+      // @ts-ignore
+      screen.orientation.lock("landscape").catch(() => {
+        // Fallback: CSS rotate for devices that won't honor lock
+        if (window.innerHeight > window.innerWidth) setRotated(true);
+      });
+    } else if (window.innerHeight > window.innerWidth) {
+      setRotated(true);
+    }
+  };
+
   const s = stateRef.current;
 
   return (
     <div ref={containerRef} className="fixed inset-0 bg-black overflow-hidden touch-none">
+      <div
+        className="absolute inset-0"
+        style={
+          rotated
+            ? {
+                transform: "rotate(90deg)",
+                transformOrigin: "center center",
+                width: "100vh",
+                height: "100vw",
+                top: "calc((100vh - 100vw) / 2)",
+                left: "calc((100vw - 100vh) / 2)",
+              }
+            : undefined
+        }
+      >
       <div
         className="absolute inset-0"
         onPointerMove={onPointer}
@@ -665,14 +700,25 @@ export default function TTGame3D() {
           </div>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="pointer-events-auto bg-background/40 backdrop-blur"
-          onClick={goFullscreen}
-        >
-          <Maximize2 className="h-4 w-4" />
-        </Button>
+        <div className="flex gap-2 pointer-events-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-background/40 backdrop-blur"
+            onClick={() => setRotated((v) => !v)}
+            title="Rotate"
+          >
+            <RotateCw className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="bg-background/40 backdrop-blur"
+            onClick={goFullscreen}
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Difficulty */}
@@ -692,10 +738,11 @@ export default function TTGame3D() {
 
       <div className="absolute bottom-3 right-3 z-10 text-xs text-white/70 pointer-events-none max-w-[210px] text-right leading-snug">
         {lang === "ru"
-          ? "Двигайте палец/мышь: влево-вправо — сторона, вверх-вниз — вперёд/назад. Резкое движение = удар."
+          ? "Резко смахните вперёд для подачи. Двигайте: ◀▶ сторона, ▲▼ вперёд/назад."
           : lang === "en"
-          ? "Move finger/mouse: left-right side, up-down forward/back. A quick swing = stronger shot."
+          ? "Swipe forward to serve. Move: ◀▶ side, ▲▼ forward/back."
           : "Barmoq/sichqonni harakatlantiring: chap-o'ng – yon, yuqori-past – oldinga/orqaga. Tezkor harakat = kuchli zarba."}
+      </div>
       </div>
 
       {/* Winner overlay */}
@@ -794,7 +841,7 @@ export default function TTGame3D() {
               </div>
             </div>
 
-            <Button variant="ember" className="w-full mt-5" size="lg" onClick={() => setMatchStarted(true)}>
+            <Button variant="ember" className="w-full mt-5" size="lg" onClick={startMatch}>
               🏓 {lang === "ru" ? "Начать матч" : lang === "en" ? "Start match" : "Boshlash"}
             </Button>
           </div>
