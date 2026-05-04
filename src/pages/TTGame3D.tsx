@@ -226,10 +226,8 @@ function Scene({ stateRef, onScore, pointerXRef, difficulty }: SceneProps) {
       Math.abs(s.ballPos.x) > TABLE.w / 2 + 2.5;
 
     if (out) {
-      // Determine winner: who failed to make it land on opponent's side
-      const playerScored = !s.bouncedOnAISide && s.ballPos.z < 0 ? false : s.ballPos.z < 0;
+      // Ball past AI side (z<0) → player scores; past player side → AI scores
       const winner: "player" | "ai" = s.ballPos.z < 0 ? "player" : "ai";
-      // simpler: ball going past player means AI scores; past AI means player scores
       onScore(winner);
       return;
     }
