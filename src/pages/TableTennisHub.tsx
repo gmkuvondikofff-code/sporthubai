@@ -7,7 +7,7 @@ import AIChat from "@/components/AIChat";
 import { Button } from "@/components/ui/button";
 import {
   Activity, Brain, Smile, Users, Trophy, Target, Flame,
-  Calendar, ChevronRight, Award, Zap, MessageCircle, X,
+  Calendar, ChevronRight, Award, Zap, MessageCircle, X, Gamepad2,
 } from "lucide-react";
 import { getUpcomingCompetitions, formatCountdown } from "@/lib/tt-competitions";
 
