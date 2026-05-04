@@ -292,10 +292,9 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         }
       } else {
         // AI auto-serves after a short delay
-        s.aiSwingCooldown -= dt;
         s.ballPos.set(s.aiX, TABLE.surfaceY + 0.22, s.aiZ + 0.05);
         s.ballVel.set(0, 0, 0);
-        if (s.aiSwingCooldown <= -0.6) {
+        if (performance.now() - s.rallyStart > 800) {
           s.ballVel.set((Math.random() - 0.5) * 0.6, 1.6, 3.2);
           s.ballSpin = 0.5;
           s.hitByAILast = true;
