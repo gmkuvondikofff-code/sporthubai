@@ -10,6 +10,7 @@ import {
   Calendar, ChevronRight, Award, Zap, MessageCircle, X, Gamepad2,
 } from "lucide-react";
 import { getUpcomingCompetitions, formatCountdown } from "@/lib/tt-competitions";
+import { fetchProgress, emptySnapshot, type ProgressSnapshot } from "@/lib/tt-progress";
 
 interface TTProfile {
   display_name: string | null;
@@ -23,18 +24,17 @@ interface TTData {
   total_xp: number;
 }
 
-const indicators = [
-  { key: "tt.speed", value: 75 },
-  { key: "tt.endurance", value: 70 },
-  { key: "tt.agility", value: 80 },
-  { key: "tt.coordination", value: 78 },
+const SKILL_DEFS = [
+  { key: "tt.physical", metric: "physical" as const, icon: Activity, color: "text-emerald-500" },
+  { key: "tt.cognitive", metric: "cognitive" as const, icon: Brain, color: "text-blue-500" },
+  { key: "tt.psych", metric: "psych" as const, icon: Smile, color: "text-purple-500" },
+  { key: "tt.social", metric: "social" as const, icon: Users, color: "text-amber-500" },
 ];
-
-const skills = [
-  { key: "tt.physical", value: 72, icon: Activity, color: "text-emerald-500" },
-  { key: "tt.cognitive", value: 68, icon: Brain, color: "text-blue-500" },
-  { key: "tt.psych", value: 75, icon: Smile, color: "text-purple-500" },
-  { key: "tt.social", value: 80, icon: Users, color: "text-amber-500" },
+const INDICATOR_DEFS = [
+  { key: "tt.speed", metric: "speed" as const },
+  { key: "tt.endurance", metric: "endurance" as const },
+  { key: "tt.agility", metric: "agility" as const },
+  { key: "tt.coordination", metric: "coordination" as const },
 ];
 
 const sessions = [
@@ -50,6 +50,7 @@ export default function TableTennisHub() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<TTProfile | null>(null);
   const [tt, setTt] = useState<TTData | null>(null);
+  const [progress, setProgress] = useState<ProgressSnapshot>(emptySnapshot());
   const [chatOpen, setChatOpen] = useState(false);
   const [now, setNow] = useState(new Date());
 
@@ -83,6 +84,8 @@ export default function TableTennisHub() {
       .from("tt_players").select("age, level, goals, training_streak, total_xp")
       .eq("user_id", user.id).single();
     if (ttd) setTt(ttd);
+    const snap = await fetchProgress(user.id);
+    setProgress(snap);
   };
 
   if (authLoading || !profile || !tt) {
@@ -93,7 +96,9 @@ export default function TableTennisHub() {
     );
   }
 
-  const xpPercent = Math.min(100, Math.round((tt.total_xp / 1200) * 100));
+  const totalXp = progress.xp;
+  const xpPercent = Math.min(100, Math.round((totalXp / 1200) * 100));
+  const trainingPct = progress.perSectionPercent.training;
 
   return (
     <div className="min-h-screen pt-20 pb-10 px-4">
@@ -133,10 +138,10 @@ export default function TableTennisHub() {
             <div className="mt-5 p-4 rounded-xl bg-secondary/40 border border-border">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-foreground">{t("tt.training")}</span>
-                <span className="text-sm font-bold text-primary">60%</span>
+                <span className="text-sm font-bold text-primary">{trainingPct}%</span>
               </div>
               <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60" style={{ width: "60%" }} />
+                <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60" style={{ width: `${trainingPct}%` }} />
               </div>
               <Button variant="ember" size="sm" className="w-full mt-4" onClick={() => navigate("/tt-hub/section/training")}>
                 {t("tt.continue")} <ChevronRight className="h-4 w-4 ml-1" />
@@ -149,7 +154,7 @@ export default function TableTennisHub() {
             <Trophy className="h-12 w-12 text-amber-500 mb-2" />
             <p className="text-xs text-muted-foreground">{t("tt.rank")}</p>
             <h3 className="font-display text-xl font-bold text-foreground">{t("tt.gold")}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{tt.total_xp} / 1200 XP</p>
+            <p className="text-sm text-muted-foreground mt-1">{totalXp} / 1200 XP</p>
             <div className="w-full mt-3 h-2 rounded-full bg-secondary overflow-hidden">
               <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-300" style={{ width: `${xpPercent}%` }} />
             </div>
@@ -237,13 +242,17 @@ export default function TableTennisHub() {
             {t("tt.metrics")}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {skills.map((s) => {
+            {SKILL_DEFS.map((s) => {
               const Icon = s.icon;
+              const value = progress.metrics[s.metric];
               return (
                 <div key={s.key} className="glass-card rounded-xl p-4">
                   <Icon className={`h-5 w-5 mb-2 ${s.color}`} />
                   <p className="text-xs text-muted-foreground">{t(s.key)}</p>
-                  <p className="text-2xl font-display font-bold text-foreground">{s.value}%</p>
+                  <p className="text-2xl font-display font-bold text-foreground">{value}%</p>
+                  <div className="mt-2 h-1.5 rounded-full bg-secondary overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60 transition-all" style={{ width: `${value}%` }} />
+                  </div>
                 </div>
               );
             })}
@@ -282,17 +291,20 @@ export default function TableTennisHub() {
           <div className="glass-card rounded-2xl p-5">
             <h4 className="font-display font-semibold text-foreground mb-3">{t("tt.indicators")}</h4>
             <div className="space-y-3">
-              {indicators.map((i) => (
+              {INDICATOR_DEFS.map((i) => {
+                const value = progress.indicators[i.metric];
+                return (
                 <div key={i.key}>
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-muted-foreground">{t(i.key)}</span>
-                    <span className="font-bold text-foreground">{i.value}%</span>
+                    <span className="font-bold text-foreground">{value}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                    <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60" style={{ width: `${i.value}%` }} />
+                    <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary/60" style={{ width: `${value}%` }} />
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="mt-5 p-4 rounded-xl bg-secondary/40">
