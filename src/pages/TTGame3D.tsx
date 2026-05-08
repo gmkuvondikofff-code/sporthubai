@@ -586,9 +586,16 @@ export default function TTGame3D() {
     const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
-    inputRef.current.x = (x - 0.5) * 2;       // -1..1
-    // Map screen Y so top of screen = forward (toward net = -1), bottom = back (+1)
-    inputRef.current.y = (y - 0.5) * 2;
+    inputRef.current.x = (x - 0.5) * 2;       // side: -1..1
+    // Right mouse / shift / 2nd touch → control vertical lift instead of depth
+    const liftMode = e.shiftKey || e.buttons === 2 || (e as any).pointerType === "touch" && e.altKey;
+    if (liftMode) {
+      // top of screen = high lift
+      inputRef.current.y = THREE.MathUtils.clamp(1 - y, 0, 1);
+    } else {
+      // depth: top of screen = forward (toward net = -1), bottom = back (+1)
+      inputRef.current.z = (y - 0.5) * 2;
+    }
   };
 
   // Keyboard controls (desktop)
@@ -598,8 +605,11 @@ export default function TTGame3D() {
       const speed = 0.05;
       if (keys.has("ArrowLeft") || keys.has("a")) inputRef.current.x = Math.max(-1, inputRef.current.x - speed);
       if (keys.has("ArrowRight") || keys.has("d")) inputRef.current.x = Math.min(1, inputRef.current.x + speed);
-      if (keys.has("ArrowUp") || keys.has("w")) inputRef.current.y = Math.max(-1, inputRef.current.y - speed);
-      if (keys.has("ArrowDown") || keys.has("s")) inputRef.current.y = Math.min(1, inputRef.current.y + speed);
+      if (keys.has("ArrowUp") || keys.has("w")) inputRef.current.z = Math.max(-1, inputRef.current.z - speed);
+      if (keys.has("ArrowDown") || keys.has("s")) inputRef.current.z = Math.min(1, inputRef.current.z + speed);
+      // Q/E or Space/Shift = paddle height (Y)
+      if (keys.has("e") || keys.has(" ")) inputRef.current.y = Math.min(1, inputRef.current.y + speed);
+      if (keys.has("q") || keys.has("Shift")) inputRef.current.y = Math.max(0, inputRef.current.y - speed);
     };
     const id = setInterval(tick, 16);
     const kd = (e: KeyboardEvent) => keys.add(e.key);
