@@ -544,7 +544,7 @@ export default function TTGame3D() {
   const navigate = useNavigate();
   const { lang } = useLanguage();
   const stateRef = useRef<GameState>(makeServeState("player"));
-  const inputRef = useRef({ x: 0, y: 0.6 }); // start a bit back
+  const inputRef = useRef({ x: 0, y: 0, z: 0.6 }); // x: side, y: height, z: depth
   const containerRef = useRef<HTMLDivElement>(null);
   const [, force] = useState(0);
   const [country] = useState(COUNTRIES[0]);
