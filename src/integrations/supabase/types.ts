@@ -202,6 +202,30 @@ export type Database = {
           },
         ]
       }
+      tt_completions: {
+        Row: {
+          created_at: string
+          id: string
+          item_index: number
+          section: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_index: number
+          section: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_index?: number
+          section?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tt_players: {
         Row: {
           age: number | null
