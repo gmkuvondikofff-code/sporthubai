@@ -227,7 +227,7 @@ function PaddleMesh({ color }: { color: string }) {
 interface SceneProps {
   stateRef: React.MutableRefObject<GameState>;
   onScore: (who: "player" | "ai") => void;
-  inputRef: React.MutableRefObject<{ x: number; y: number }>; // -1..1
+  inputRef: React.MutableRefObject<{ x: number; y: number; z: number }>; // x:side, y:height, z:depth, all -1..1 (y: 0..1)
   difficulty: number; // 0..2
   opponentSkill: number;
   onUpdate: () => void;
@@ -262,14 +262,16 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     //   y = -1 → forward (toward net, Z ~ PLAYER_Z_MIN)
     //   y = +1 → backward (Z ~ PLAYER_Z_MAX)
     const targetX = THREE.MathUtils.clamp(inputRef.current.x * (TABLE.w / 2 + 0.35), -TABLE.w / 2 - 0.35, TABLE.w / 2 + 0.35);
-    const yNorm = (inputRef.current.y + 1) / 2; // 0..1
-    const targetZ = THREE.MathUtils.lerp(PLAYER_Z_MIN, PLAYER_Z_MAX, yNorm);
+    const zNorm = (inputRef.current.z + 1) / 2; // 0..1
+    const targetZ = THREE.MathUtils.lerp(PLAYER_Z_MIN, PLAYER_Z_MAX, zNorm);
+    // Free Y: paddle height above table (0..0.55m)
+    const yLift = THREE.MathUtils.clamp(inputRef.current.y, 0, 1) * 0.55;
 
     s.playerPrev.set(s.playerX, s.playerY, s.playerZ);
     s.playerX = THREE.MathUtils.lerp(s.playerX, targetX, 0.35);
     s.playerZ = THREE.MathUtils.lerp(s.playerZ, targetZ, 0.30);
     // height oscillates slightly with z (player crouches when reaching forward)
-    s.playerY = TABLE.surfaceY + 0.06 + (s.playerZ - PLAYER_Z_MIN) * 0.015;
+    s.playerY = TABLE.surfaceY + 0.06 + (s.playerZ - PLAYER_Z_MIN) * 0.015 + yLift;
     s.playerVel.set(
       (s.playerX - s.playerPrev.x) / dt,
       (s.playerY - s.playerPrev.y) / dt,
@@ -322,7 +324,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       s.aiTargetZ = -TABLE.l / 2 - 0.30;
     }
     // Slower AI movement → easier
-    const aiSpeed = 1.6 + difficulty * 1.0 + opponentSkill * 0.7; // m/s
+    const aiSpeed = 1.2 + difficulty * 0.7 + opponentSkill * 0.5; // m/s
     const dx = s.aiTargetX - s.aiX;
     const dz = s.aiTargetZ - s.aiZ;
     const distXZ = Math.hypot(dx, dz);
@@ -336,9 +338,9 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     if (!s.waitingForServe) {
     // gravity
     s.ballVel.y -= 9.8 * dt;
-    // light air drag
-    s.ballVel.multiplyScalar(1 - 0.06 * dt);
-    // Magnus from topspin: spin>0 (topspin) → extra downward dip; spin<0 (backspin) → lift
+    // stronger air drag → slower ball overall
+    s.ballVel.multiplyScalar(1 - 0.18 * dt);
+    // Magnus from topspin
     s.ballVel.y -= s.ballSpin * 1.4 * dt;
     // spin decays
     s.ballSpin *= Math.exp(-0.4 * dt);
@@ -386,8 +388,8 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       const dy2 = s.ballPos.y - s.playerY;
       const dz2 = s.ballPos.z - s.playerZ;
       // Generous hit volume so the paddle reliably contacts the ball
-      const within = Math.sqrt(dx2 * dx2 + dy2 * dy2) < PADDLE.r + BALL_R + 0.05;
-      const closeZ = Math.abs(dz2) < 0.14 + Math.abs(s.playerVel.z) * dt;
+      const within = Math.sqrt(dx2 * dx2 + dy2 * dy2) < PADDLE.r + BALL_R + 0.08;
+      const closeZ = Math.abs(dz2) < 0.18 + Math.abs(s.playerVel.z) * dt;
       const movingToward = s.ballVel.z > 0; // ball traveling toward player (+Z)
       if (within && closeZ && movingToward) {
         // Reflect Z, add player's swing
@@ -395,13 +397,15 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         const swingY = s.playerVel.y;
         const swingX = s.playerVel.x;
         const baseSpeed = Math.abs(s.ballVel.z);
-        // Harder, snappier hits
-        const power = baseSpeed * 0.75 + Math.max(0, -swingZ) * 2.2 + 7.0;
+        // Softer, slower hits → easier rallies
+        const power = baseSpeed * 0.45 + Math.max(0, -swingZ) * 1.4 + 4.2;
         s.ballVel.z = -power;
-        s.ballVel.x = dx2 * 10 + swingX * 0.8;
-        s.ballVel.y = Math.max(2.2, dy2 * 5 + swingY * 0.9 + 2.8);
+        // Auto-aim assist: target opponent's current X, blended with offset for placement
+        const aimToAI = (s.aiX - s.playerX);
+        s.ballVel.x = aimToAI * 1.6 + dx2 * 3.5 + swingX * 0.5;
+        s.ballVel.y = Math.max(1.6, dy2 * 4 + swingY * 0.7 + 2.2);
         // Topspin from forward swing, backspin from upward chop
-        s.ballSpin = Math.max(-3.5, Math.min(3.5, -swingZ * 0.35 + swingY * -0.2));
+        s.ballSpin = Math.max(-3.0, Math.min(3.0, -swingZ * 0.30 + swingY * -0.18));
         s.bouncedOnPlayerSide = false;
         s.bouncedOnAISide = false;
         s.hitByPlayerLast = true;
@@ -429,8 +433,8 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         // Use projectile from current position to landing
         // Choose flight time scaled by difficulty (shorter = faster ball)
         // Easier AI: longer flight time → slower, more reachable balls
-        const skill = 0.45 + opponentSkill * 0.35 + difficulty * 0.15;
-        const flightT = THREE.MathUtils.clamp(0.60 / Math.max(0.4, skill), 0.35, 0.85);
+        const skill = 0.35 + opponentSkill * 0.25 + difficulty * 0.12;
+        const flightT = THREE.MathUtils.clamp(0.75 / Math.max(0.4, skill), 0.55, 1.20);
         const vz = (aimZ - s.ballPos.z) / flightT;
         const vx = (aimX - s.ballPos.x) / flightT;
         // vy from y0 + vy*t - 0.5*g*t^2 = surfaceY + BALL_R, but allow rise then fall
@@ -445,7 +449,7 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         s.bouncedOnAISide = false;
         s.hitByPlayerLast = false;
         s.hitByAILast = true;
-        s.aiSwingCooldown = 0.4;
+        s.aiSwingCooldown = 0.55;
         s.lastHitT = performance.now();
       }
     }
@@ -544,7 +548,7 @@ export default function TTGame3D() {
   const navigate = useNavigate();
   const { lang } = useLanguage();
   const stateRef = useRef<GameState>(makeServeState("player"));
-  const inputRef = useRef({ x: 0, y: 0.6 }); // start a bit back
+  const inputRef = useRef({ x: 0, y: 0, z: 0.6 }); // x: side, y: height, z: depth
   const containerRef = useRef<HTMLDivElement>(null);
   const [, force] = useState(0);
   const [country] = useState(COUNTRIES[0]);
@@ -582,9 +586,16 @@ export default function TTGame3D() {
     const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
-    inputRef.current.x = (x - 0.5) * 2;       // -1..1
-    // Map screen Y so top of screen = forward (toward net = -1), bottom = back (+1)
-    inputRef.current.y = (y - 0.5) * 2;
+    inputRef.current.x = (x - 0.5) * 2;       // side: -1..1
+    // Right mouse / shift / 2nd touch → control vertical lift instead of depth
+    const liftMode = e.shiftKey || e.buttons === 2 || (e as any).pointerType === "touch" && e.altKey;
+    if (liftMode) {
+      // top of screen = high lift
+      inputRef.current.y = THREE.MathUtils.clamp(1 - y, 0, 1);
+    } else {
+      // depth: top of screen = forward (toward net = -1), bottom = back (+1)
+      inputRef.current.z = (y - 0.5) * 2;
+    }
   };
 
   // Keyboard controls (desktop)
@@ -594,8 +605,11 @@ export default function TTGame3D() {
       const speed = 0.05;
       if (keys.has("ArrowLeft") || keys.has("a")) inputRef.current.x = Math.max(-1, inputRef.current.x - speed);
       if (keys.has("ArrowRight") || keys.has("d")) inputRef.current.x = Math.min(1, inputRef.current.x + speed);
-      if (keys.has("ArrowUp") || keys.has("w")) inputRef.current.y = Math.max(-1, inputRef.current.y - speed);
-      if (keys.has("ArrowDown") || keys.has("s")) inputRef.current.y = Math.min(1, inputRef.current.y + speed);
+      if (keys.has("ArrowUp") || keys.has("w")) inputRef.current.z = Math.max(-1, inputRef.current.z - speed);
+      if (keys.has("ArrowDown") || keys.has("s")) inputRef.current.z = Math.min(1, inputRef.current.z + speed);
+      // Q/E or Space/Shift = paddle height (Y)
+      if (keys.has("e") || keys.has(" ")) inputRef.current.y = Math.min(1, inputRef.current.y + speed);
+      if (keys.has("q") || keys.has("Shift")) inputRef.current.y = Math.max(0, inputRef.current.y - speed);
     };
     const id = setInterval(tick, 16);
     const kd = (e: KeyboardEvent) => keys.add(e.key);
@@ -738,10 +752,10 @@ export default function TTGame3D() {
 
       <div className="absolute bottom-3 right-3 z-10 text-xs text-white/70 pointer-events-none max-w-[210px] text-right leading-snug">
         {lang === "ru"
-          ? "Резко смахните вперёд для подачи. Двигайте: ◀▶ сторона, ▲▼ вперёд/назад."
+          ? "Подача — резкий свайп вперёд. ◀▶ сторона, ▲▼ глубина. Shift/ПКМ — высота ракетки."
           : lang === "en"
-          ? "Swipe forward to serve. Move: ◀▶ side, ▲▼ forward/back."
-          : "Barmoq/sichqonni harakatlantiring: chap-o'ng – yon, yuqori-past – oldinga/orqaga. Tezkor harakat = kuchli zarba."}
+          ? "Swipe forward to serve. ◀▶ side, ▲▼ depth. Shift/RMB — paddle height."
+          : "Podacha — tezkor oldinga harakat. ◀▶ yon, ▲▼ chuqurlik. Shift/O'ng tugma — raketka balandligi (Y)."}
       </div>
       </div>
 
