@@ -752,10 +752,10 @@ export default function TTGame3D() {
 
       <div className="absolute bottom-3 right-3 z-10 text-xs text-white/70 pointer-events-none max-w-[210px] text-right leading-snug">
         {lang === "ru"
-          ? "Резко смахните вперёд для подачи. Двигайте: ◀▶ сторона, ▲▼ вперёд/назад."
+          ? "Подача — резкий свайп вперёд. ◀▶ сторона, ▲▼ глубина. Shift/ПКМ — высота ракетки."
           : lang === "en"
-          ? "Swipe forward to serve. Move: ◀▶ side, ▲▼ forward/back."
-          : "Barmoq/sichqonni harakatlantiring: chap-o'ng – yon, yuqori-past – oldinga/orqaga. Tezkor harakat = kuchli zarba."}
+          ? "Swipe forward to serve. ◀▶ side, ▲▼ depth. Shift/RMB — paddle height."
+          : "Podacha — tezkor oldinga harakat. ◀▶ yon, ▲▼ chuqurlik. Shift/O'ng tugma — raketka balandligi (Y)."}
       </div>
       </div>
 
