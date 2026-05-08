@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Maximize2, RotateCw, Trophy } from "lucide-react";
+import { ArrowLeft, Maximize2, RotateCw, Trophy, ChevronUp, ChevronDown } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 
 // Real-ish ITTF dimensions (meters). 1 unit = 1m.
@@ -323,8 +323,8 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       s.aiTargetX = THREE.MathUtils.lerp(s.aiTargetX, s.ballPos.x * 0.4, 0.05);
       s.aiTargetZ = -TABLE.l / 2 - 0.30;
     }
-    // Slower AI movement → easier
-    const aiSpeed = 1.2 + difficulty * 0.7 + opponentSkill * 0.5; // m/s
+    // Much slower AI movement → very easy
+    const aiSpeed = 0.7 + difficulty * 0.45 + opponentSkill * 0.3; // m/s
     const dx = s.aiTargetX - s.aiX;
     const dz = s.aiTargetZ - s.aiZ;
     const distXZ = Math.hypot(dx, dz);
@@ -397,15 +397,16 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         const swingY = s.playerVel.y;
         const swingX = s.playerVel.x;
         const baseSpeed = Math.abs(s.ballVel.z);
-        // Softer, slower hits → easier rallies
-        const power = baseSpeed * 0.45 + Math.max(0, -swingZ) * 1.4 + 4.2;
+        // Even softer, lower trajectory → ball doesn't fly up
+        const power = baseSpeed * 0.35 + Math.max(0, -swingZ) * 1.0 + 3.2;
         s.ballVel.z = -power;
-        // Auto-aim assist: target opponent's current X, blended with offset for placement
+        // Auto-aim assist: target opponent's current X
         const aimToAI = (s.aiX - s.playerX);
-        s.ballVel.x = aimToAI * 1.6 + dx2 * 3.5 + swingX * 0.5;
-        s.ballVel.y = Math.max(1.6, dy2 * 4 + swingY * 0.7 + 2.2);
-        // Topspin from forward swing, backspin from upward chop
-        s.ballSpin = Math.max(-3.0, Math.min(3.0, -swingZ * 0.30 + swingY * -0.18));
+        s.ballVel.x = aimToAI * 1.4 + dx2 * 2.5 + swingX * 0.4;
+        // Lower upward velocity so ball stays close to table
+        s.ballVel.y = Math.max(0.9, Math.min(2.0, dy2 * 2.5 + swingY * 0.5 + 1.2));
+        // Reduced spin
+        s.ballSpin = Math.max(-2.0, Math.min(2.0, -swingZ * 0.20 + swingY * -0.12));
         s.bouncedOnPlayerSide = false;
         s.bouncedOnAISide = false;
         s.hitByPlayerLast = true;
@@ -433,23 +434,25 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         // Use projectile from current position to landing
         // Choose flight time scaled by difficulty (shorter = faster ball)
         // Easier AI: longer flight time → slower, more reachable balls
-        const skill = 0.35 + opponentSkill * 0.25 + difficulty * 0.12;
-        const flightT = THREE.MathUtils.clamp(0.75 / Math.max(0.4, skill), 0.55, 1.20);
+        // Make AI very simple: lower skill, longer flight time → easier to return
+        const skill = 0.20 + opponentSkill * 0.15 + difficulty * 0.10;
+        const flightT = THREE.MathUtils.clamp(0.95 / Math.max(0.3, skill), 0.75, 1.60);
         const vz = (aimZ - s.ballPos.z) / flightT;
         const vx = (aimX - s.ballPos.x) / flightT;
         // vy from y0 + vy*t - 0.5*g*t^2 = surfaceY + BALL_R, but allow rise then fall
         const vy = ((TABLE.surfaceY + BALL_R) - y0 + 0.5 * 9.8 * flightT * flightT) / flightT;
         s.ballVel.set(vx, vy, vz);
-        // Add error based on (1 - skill)
-        const err = (1 - skill) * 1.2;
-        s.ballVel.x += (Math.random() - 0.5) * err * 2;
-        s.ballVel.z += (Math.random() - 0.5) * err * 2;
-        s.ballSpin = (Math.random() * 1.5 + 0.5) * (Math.random() < 0.7 ? 1 : -1) * skill;
+        // Much higher error → AI misses and gives easy balls
+        const err = (1 - skill) * 2.2;
+        s.ballVel.x += (Math.random() - 0.5) * err * 2.5;
+        s.ballVel.z += (Math.random() - 0.5) * err * 2.0;
+        s.ballVel.y = Math.min(s.ballVel.y, 2.2); // cap upward velocity
+        s.ballSpin = (Math.random() * 0.8 + 0.2) * (Math.random() < 0.7 ? 1 : -1) * skill;
         s.bouncedOnPlayerSide = false;
         s.bouncedOnAISide = false;
         s.hitByPlayerLast = false;
         s.hitByAILast = true;
-        s.aiSwingCooldown = 0.55;
+        s.aiSwingCooldown = 0.85;
         s.lastHitT = performance.now();
       }
     }
@@ -752,10 +755,35 @@ export default function TTGame3D() {
 
       <div className="absolute bottom-3 right-3 z-10 text-xs text-white/70 pointer-events-none max-w-[210px] text-right leading-snug">
         {lang === "ru"
-          ? "Подача — резкий свайп вперёд. ◀▶ сторона, ▲▼ глубина. Shift/ПКМ — высота ракетки."
+          ? "Подача — свайп вперёд. ◀▶ сторона, ▲▼ глубина. Кнопки ↑↓ — высота ракетки."
           : lang === "en"
-          ? "Swipe forward to serve. ◀▶ side, ▲▼ depth. Shift/RMB — paddle height."
-          : "Podacha — tezkor oldinga harakat. ◀▶ yon, ▲▼ chuqurlik. Shift/O'ng tugma — raketka balandligi (Y)."}
+          ? "Swipe forward to serve. ◀▶ side, ▲▼ depth. ↑↓ buttons — paddle height."
+          : "Podacha — oldinga harakat. ◀▶ yon, ▲▼ chuqurlik. ↑↓ tugmalari — raketka balandligi."}
+      </div>
+
+      {/* Paddle height controls (Y axis) */}
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-2 pointer-events-auto">
+        <Button
+          size="icon"
+          variant="outline"
+          className="bg-background/40 backdrop-blur h-12 w-12"
+          onPointerDown={() => { inputRef.current.y = Math.min(1, inputRef.current.y + 0.25); }}
+          title="Up"
+        >
+          <ChevronUp className="h-6 w-6" />
+        </Button>
+        <div className="text-[10px] text-white/70 text-center bg-background/40 backdrop-blur rounded px-1 py-0.5">
+          Y: {Math.round(inputRef.current.y * 100)}%
+        </div>
+        <Button
+          size="icon"
+          variant="outline"
+          className="bg-background/40 backdrop-blur h-12 w-12"
+          onPointerDown={() => { inputRef.current.y = Math.max(0, inputRef.current.y - 0.25); }}
+          title="Down"
+        >
+          <ChevronDown className="h-6 w-6" />
+        </Button>
       </div>
       </div>
 
