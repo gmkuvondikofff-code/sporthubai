@@ -84,8 +84,6 @@ const TITLES: Record<SectionKey, { uz: string; ru: string; en: string; desc: { u
     desc: { uz: "Stol tennisi uchun zarur asbob-uskunalar va misollar.", ru: "Необходимый инвентарь и примеры.", en: "Required gear with examples." } },
   methods:     { uz: "Amaliy mashqlar", ru: "Практические упражнения", en: "Practical drills",
     desc: { uz: "10 ta video darslik bilan kunlik mashqlar.", ru: "10 видеоуроков и ежедневные упражнения.", en: "10 video lessons + daily drills." } },
-  tactics:     { uz: "Taktika va texnika", ru: "Тактика и техника", en: "Tactics & Technique",
-    desc: { uz: "10 ta video darslik bilan strategiyalar.", ru: "Стратегии с 10 видеоуроками.", en: "Strategies with 10 video lessons." } },
   "mini-tour": { uz: "Mini-turnir", ru: "Мини-турнир", en: "Mini-tournament",
     desc: { uz: "Do'stlar bilan kichik musobaqa.", ru: "Соревнование с друзьями.", en: "Tournament with friends." } },
   "daily-task":{ uz: "Kunning vazifasi", ru: "Задание дня", en: "Daily task",
@@ -111,10 +109,9 @@ export default function TTSection() {
   const items: (ItemWithImage & { yt?: string })[] =
     key === "tools" ? TOOLS_ITEMS :
     key === "methods" ? METHODS_ITEMS :
-    key === "tactics" ? TACTICS_ITEMS :
     SIMPLE_ITEMS[key];
 
-  const extraVideos = key === "tactics" ? TACTICS_EXTRA_VIDEOS : [];
+  const extraVideos: { title: string; url: string }[] = [];
 
   const completedSet = progress.completed[key];
   const allDone = completedSet.size >= SECTION_SIZES[key];
