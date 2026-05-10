@@ -40,7 +40,6 @@ const INDICATOR_DEFS = [
 const sessions = [
   { titleKey: "tt.tools", route: "tools", descUz: "Jihozlar va anjomlar", descRu: "Инвентарь и снаряжение", descEn: "Equipment & gear" },
   { titleKey: "tt.methods", route: "methods", descUz: "Amaliy mashqlar", descRu: "Практические упражнения", descEn: "Practical drills" },
-  { titleKey: "tt.tactics", route: "tactics", descUz: "Forehand, backhand va boshqalar", descRu: "Форхенд, бэкхенд и др.", descEn: "Forehand, backhand & more" },
   { titleKey: "tt.miniTour", route: "mini-tour", descUz: "Musobaqalar va o'yinlar", descRu: "Соревнования и игры", descEn: "Tournaments & matches" },
 ];
 
@@ -265,7 +264,6 @@ export default function TableTennisHub() {
             <div className="flex gap-2 mb-4">
               <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-500 font-medium">{t("tt.tools")}</span>
               <span className="text-xs px-3 py-1 rounded-full bg-blue-500/15 text-blue-500 font-medium">{t("tt.methods")}</span>
-              <span className="text-xs px-3 py-1 rounded-full bg-purple-500/15 text-purple-500 font-medium">{t("tt.tactics")}</span>
             </div>
             <ul className="space-y-3">
               {sessions.map((s) => (
