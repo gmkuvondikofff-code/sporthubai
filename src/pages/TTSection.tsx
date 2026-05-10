@@ -136,7 +136,7 @@ export default function TTSection() {
     key === "tactics" ? TACTICS_ITEMS :
     SIMPLE_ITEMS[key];
 
-  const extraVideos = key === "methods" ? METHODS_EXTRA_VIDEOS : key === "tactics" ? TACTICS_EXTRA_VIDEOS : [];
+  const extraVideos = key === "tactics" ? TACTICS_EXTRA_VIDEOS : [];
 
   const completedSet = progress.completed[key];
   const allDone = completedSet.size >= SECTION_SIZES[key];
