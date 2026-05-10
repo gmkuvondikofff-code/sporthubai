@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type SectionKey = "tools" | "methods" | "tactics" | "mini-tour" | "daily-task" | "training";
+export type SectionKey = "tools" | "methods" | "mini-tour" | "daily-task" | "training";
 
 // XP per completed item
 export const XP_PER_ITEM = 50;
@@ -9,7 +9,6 @@ export const XP_PER_ITEM = 50;
 export const SECTION_SIZES: Record<SectionKey, number> = {
   tools: 6,
   methods: 13,
-  tactics: 6,
   "mini-tour": 6,
   "daily-task": 6,
   training: 6,
@@ -18,16 +17,16 @@ export const SECTION_SIZES: Record<SectionKey, number> = {
 // How each section contributes to a metric (percent points per completed item)
 const METRIC_WEIGHTS: Record<"physical" | "cognitive" | "psych" | "social", Partial<Record<SectionKey, number>>> = {
   physical:  { tools: 4, methods: 6, training: 5, "daily-task": 2 },
-  cognitive: { tactics: 7, methods: 3, "mini-tour": 2 },
-  psych:     { "mini-tour": 5, "daily-task": 6, tactics: 3, training: 2 },
+  cognitive: { methods: 6, "mini-tour": 4, training: 2 },
+  psych:     { "mini-tour": 5, "daily-task": 6, training: 3 },
   social:    { "mini-tour": 7, tools: 1, "daily-task": 1 },
 };
 
 const INDICATOR_WEIGHTS: Record<"speed" | "endurance" | "agility" | "coordination", Partial<Record<SectionKey, number>>> = {
   speed:        { methods: 5, training: 4, "daily-task": 2 },
   endurance:    { training: 7, methods: 3, "mini-tour": 2 },
-  agility:      { methods: 4, tactics: 3, training: 4 },
-  coordination: { tools: 3, methods: 4, tactics: 4, "daily-task": 2 },
+  agility:      { methods: 5, training: 4, "daily-task": 2 },
+  coordination: { tools: 3, methods: 5, training: 3, "daily-task": 2 },
 };
 
 export interface ProgressSnapshot {
@@ -42,14 +41,14 @@ export interface ProgressSnapshot {
 export function emptySnapshot(): ProgressSnapshot {
   return {
     completed: {
-      tools: new Set(), methods: new Set(), tactics: new Set(),
+      tools: new Set(), methods: new Set(),
       "mini-tour": new Set(), "daily-task": new Set(), training: new Set(),
     },
     totalDone: 0,
     xp: 0,
     metrics: { physical: 0, cognitive: 0, psych: 0, social: 0 },
     indicators: { speed: 0, endurance: 0, agility: 0, coordination: 0 },
-    perSectionPercent: { tools: 0, methods: 0, tactics: 0, "mini-tour": 0, "daily-task": 0, training: 0 },
+    perSectionPercent: { tools: 0, methods: 0, "mini-tour": 0, "daily-task": 0, training: 0 },
   };
 }
 

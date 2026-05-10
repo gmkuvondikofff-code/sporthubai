@@ -52,29 +52,7 @@ const METHODS_ITEMS: (ItemWithImage & { yt: string })[] = METHODS_VIDEOS.map((v)
   uz: v.uz, ru: v.ru, en: v.en, img: ytImg(v.id), yt: ytUrl(v.id),
 }));
 
-const TACTICS_ITEMS: (ItemWithImage & { yt: string })[] = [
-  { uz: "Hujum: topspin + tezlik", ru: "Атака: топспин + скорость", en: "Attack: topspin + speed",
-    img: "https://i.ytimg.com/vi/HnQwYNfEdOo/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=HnQwYNfEdOo" },
-  { uz: "Himoya: chop, block, lob", ru: "Защита: chop, block, lob", en: "Defense: chop, block, lob",
-    img: "https://i.ytimg.com/vi/cWHTbN1pVF0/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=cWHTbN1pVF0" },
-  { uz: "Servisdan keyingi 3-zarba sxemasi", ru: "Схема 3-го удара после подачи", en: "3rd-ball attack after serve",
-    img: "https://i.ytimg.com/vi/wBpErVf-G_Y/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=wBpErVf-G_Y" },
-  { uz: "Raqibning zaif tomonini topish", ru: "Поиск слабых сторон соперника", en: "Find opponent's weak side",
-    img: "https://i.ytimg.com/vi/c4PESH2GZjY/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=c4PESH2GZjY" },
-  { uz: "Stol burchaklariga aniq yo'naltirish", ru: "Точное направление по углам стола", en: "Precise corner placement",
-    img: "https://i.ytimg.com/vi/1ZXOOaUIGCo/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=1ZXOOaUIGCo" },
-  { uz: "Ritm o'zgartirish — tempo control", ru: "Смена ритма", en: "Tempo control",
-    img: "https://i.ytimg.com/vi/sQBVyU2VqvE/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=sQBVyU2VqvE" },
-];
-
-const TACTICS_EXTRA_VIDEOS = [
-  { title: "Match Play Tactics — PingSkills", url: "https://www.youtube.com/watch?v=qDmxTOWWpRs" },
-  { title: "Reading Opponent's Spin", url: "https://www.youtube.com/watch?v=3GP8d7t-y_o" },
-  { title: "Doubles Strategy Guide", url: "https://www.youtube.com/watch?v=FQq-5wK_pcg" },
-  { title: "Pro Match Analysis", url: "https://www.youtube.com/watch?v=aKkV6VkNrdY" },
-];
-
-const SIMPLE_ITEMS: Record<Exclude<SectionKey, "tools" | "methods" | "tactics">, ItemWithImage[]> = {
+const SIMPLE_ITEMS: Record<Exclude<SectionKey, "tools" | "methods">, ItemWithImage[]> = {
   "mini-tour": [
     { uz: "3-5 ishtirokchi yig'ing", ru: "Соберите 3-5 участников", en: "Gather 3-5 players", img: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=400&h=250&fit=crop" },
     { uz: "Round-robin grafigini tuzing", ru: "Составьте сетку round-robin", en: "Build round-robin bracket", img: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=400&h=250&fit=crop" },
@@ -106,8 +84,6 @@ const TITLES: Record<SectionKey, { uz: string; ru: string; en: string; desc: { u
     desc: { uz: "Stol tennisi uchun zarur asbob-uskunalar va misollar.", ru: "Необходимый инвентарь и примеры.", en: "Required gear with examples." } },
   methods:     { uz: "Amaliy mashqlar", ru: "Практические упражнения", en: "Practical drills",
     desc: { uz: "10 ta video darslik bilan kunlik mashqlar.", ru: "10 видеоуроков и ежедневные упражнения.", en: "10 video lessons + daily drills." } },
-  tactics:     { uz: "Taktika va texnika", ru: "Тактика и техника", en: "Tactics & Technique",
-    desc: { uz: "10 ta video darslik bilan strategiyalar.", ru: "Стратегии с 10 видеоуроками.", en: "Strategies with 10 video lessons." } },
   "mini-tour": { uz: "Mini-turnir", ru: "Мини-турнир", en: "Mini-tournament",
     desc: { uz: "Do'stlar bilan kichik musobaqa.", ru: "Соревнование с друзьями.", en: "Tournament with friends." } },
   "daily-task":{ uz: "Kunning vazifasi", ru: "Задание дня", en: "Daily task",
@@ -133,10 +109,9 @@ export default function TTSection() {
   const items: (ItemWithImage & { yt?: string })[] =
     key === "tools" ? TOOLS_ITEMS :
     key === "methods" ? METHODS_ITEMS :
-    key === "tactics" ? TACTICS_ITEMS :
     SIMPLE_ITEMS[key];
 
-  const extraVideos = key === "tactics" ? TACTICS_EXTRA_VIDEOS : [];
+  const extraVideos: { title: string; url: string }[] = [];
 
   const completedSet = progress.completed[key];
   const allDone = completedSet.size >= SECTION_SIZES[key];
