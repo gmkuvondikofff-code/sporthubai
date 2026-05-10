@@ -29,28 +29,28 @@ const TOOLS_ITEMS: ItemWithImage[] = [
     img: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=400&h=300&fit=crop" },
 ];
 
-// Real YouTube tutorial links (PingSkills, TableTennisDaily, etc.)
-const METHODS_ITEMS: (ItemWithImage & { yt: string })[] = [
-  { uz: "Forehand drive — asosiy texnika", ru: "Форхенд драйв — базовая техника", en: "Forehand drive — basics",
-    img: "https://i.ytimg.com/vi/0aRMUBpSVME/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=0aRMUBpSVME" },
-  { uz: "Backhand drive — to'g'ri zarba", ru: "Бэкхенд драйв — правильный удар", en: "Backhand drive — correct stroke",
-    img: "https://i.ytimg.com/vi/QpeZi-rB8os/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=QpeZi-rB8os" },
-  { uz: "Topspin servis", ru: "Топспин подача", en: "Topspin serve",
-    img: "https://i.ytimg.com/vi/HEYI8O2gM3M/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=HEYI8O2gM3M" },
-  { uz: "Backspin (chop) servis", ru: "Бэкспин (чоп) подача", en: "Backspin (chop) serve",
-    img: "https://i.ytimg.com/vi/qyrHb-3p6sk/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=qyrHb-3p6sk" },
-  { uz: "Multiball mashqi — 100 to'p", ru: "Мультибол — 100 мячей", en: "Multiball drill — 100 balls",
-    img: "https://i.ytimg.com/vi/UxIx5J9aV0o/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=UxIx5J9aV0o" },
-  { uz: "Footwork — 2-step va 3-step", ru: "Футворк — 2-шаг и 3-шаг", en: "Footwork — 2-step and 3-step",
-    img: "https://i.ytimg.com/vi/L7L3-ZkCm5w/hqdefault.jpg", yt: "https://www.youtube.com/watch?v=L7L3-ZkCm5w" },
+// 13 ketma-ket video darslik (PL8G9_JOD5NB0XyCH_S09I4zFGtuqhWRty)
+const PLAYLIST = "PL8G9_JOD5NB0XyCH_S09I4zFGtuqhWRty";
+const ytUrl = (id: string) => `https://www.youtube.com/watch?v=${id}&list=${PLAYLIST}`;
+const ytImg = (id: string) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+const METHODS_VIDEOS: { id: string; uz: string; ru: string; en: string }[] = [
+  { id: "sFOPqdjSmW4", uz: "1-dars: Kirish va asoslar", ru: "Урок 1: Введение и основы", en: "Lesson 1: Intro & basics" },
+  { id: "SU4sksLuQQY", uz: "2-dars: Raketkani ushlash", ru: "Урок 2: Хват ракетки", en: "Lesson 2: Grip" },
+  { id: "cLh0B0xfmsg", uz: "3-dars: Asosiy stoyka", ru: "Урок 3: Базовая стойка", en: "Lesson 3: Stance" },
+  { id: "o6RWbZFB0oE", uz: "4-dars: Forehand zarba", ru: "Урок 4: Форхенд", en: "Lesson 4: Forehand" },
+  { id: "pk4o_oyqpGE", uz: "5-dars: Backhand zarba", ru: "Урок 5: Бэкхенд", en: "Lesson 5: Backhand" },
+  { id: "YkcscC77ces", uz: "6-dars: Servis texnikasi", ru: "Урок 6: Подача", en: "Lesson 6: Serve" },
+  { id: "9o_DJmAXdBE", uz: "7-dars: Topspin", ru: "Урок 7: Топспин", en: "Lesson 7: Topspin" },
+  { id: "zgT5cO-V4jE", uz: "8-dars: Backspin", ru: "Урок 8: Бэкспин", en: "Lesson 8: Backspin" },
+  { id: "XsPcnT1jq6Q", uz: "9-dars: Footwork", ru: "Урок 9: Работа ног", en: "Lesson 9: Footwork" },
+  { id: "wn7TiBoP5L4", uz: "10-dars: Block va himoya", ru: "Урок 10: Блок и защита", en: "Lesson 10: Block & defense" },
+  { id: "wSxUoaIAk14", uz: "11-dars: Smash hujum", ru: "Урок 11: Смэш", en: "Lesson 11: Smash" },
+  { id: "ZZ7ZWJ5yL9s", uz: "12-dars: Taktika", ru: "Урок 12: Тактика", en: "Lesson 12: Tactics" },
+  { id: "yAs01uVtOMQ", uz: "13-dars: Match va amaliyot", ru: "Урок 13: Матч и практика", en: "Lesson 13: Match practice" },
 ];
-
-const METHODS_EXTRA_VIDEOS = [
-  { title: "Forehand Loop Technique", url: "https://www.youtube.com/watch?v=ZJnW8wZ5tWk" },
-  { title: "Backhand Flick Tutorial", url: "https://www.youtube.com/watch?v=4yVgoKaXVeg" },
-  { title: "Service Variations Masterclass", url: "https://www.youtube.com/watch?v=lqAPEMW2nJU" },
-  { title: "Footwork Drills for Beginners", url: "https://www.youtube.com/watch?v=v8BbZk9V3LQ" },
-];
+const METHODS_ITEMS: (ItemWithImage & { yt: string })[] = METHODS_VIDEOS.map((v) => ({
+  uz: v.uz, ru: v.ru, en: v.en, img: ytImg(v.id), yt: ytUrl(v.id),
+}));
 
 const TACTICS_ITEMS: (ItemWithImage & { yt: string })[] = [
   { uz: "Hujum: topspin + tezlik", ru: "Атака: топспин + скорость", en: "Attack: topspin + speed",
@@ -136,7 +136,7 @@ export default function TTSection() {
     key === "tactics" ? TACTICS_ITEMS :
     SIMPLE_ITEMS[key];
 
-  const extraVideos = key === "methods" ? METHODS_EXTRA_VIDEOS : key === "tactics" ? TACTICS_EXTRA_VIDEOS : [];
+  const extraVideos = key === "tactics" ? TACTICS_EXTRA_VIDEOS : [];
 
   const completedSet = progress.completed[key];
   const allDone = completedSet.size >= SECTION_SIZES[key];
