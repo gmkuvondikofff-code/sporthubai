@@ -255,6 +255,10 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
   const ballShadowRef = useRef<THREE.Mesh>(null!);
   const playerRef = useRef<THREE.Group>(null!);
   const aiRef = useRef<THREE.Group>(null!);
+  const trailRef = useRef<THREE.Line>(null!);
+  const TRAIL_N = 32;
+  const trailPositions = useMemo(() => new Float32Array(TRAIL_N * 3), []);
+  const trailColors = useMemo(() => new Float32Array(TRAIL_N * 3), []);
   const lastUpdateUI = useRef(0);
 
   // Predict where the ball will cross a given Z plane (no air drag, simple gravity)
@@ -586,6 +590,53 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       aiRef.current.rotation.set(-0.6, Math.PI, 0);
     }
 
+    // ======= Spin-colored ball trail =======
+    if (trailRef.current) {
+      // Shift positions back, push current to head
+      for (let i = TRAIL_N - 1; i > 0; i--) {
+        trailPositions[i * 3]     = trailPositions[(i - 1) * 3];
+        trailPositions[i * 3 + 1] = trailPositions[(i - 1) * 3 + 1];
+        trailPositions[i * 3 + 2] = trailPositions[(i - 1) * 3 + 2];
+      }
+      trailPositions[0] = s.ballPos.x;
+      trailPositions[1] = s.ballPos.y;
+      trailPositions[2] = s.ballPos.z;
+      // Color by dominant spin axis & magnitude
+      const wMag = s.ballSpin.length();
+      const intensity = Math.min(1, wMag / 120);
+      // Topspin (ω.x same sign as -v.z direction means dive). Use ω.x + ball direction.
+      // Heuristic: positive ω.x→red (top/back depending on motion), ω.y→green (side), ω.z→blue
+      const ax = Math.abs(s.ballSpin.x);
+      const ay = Math.abs(s.ballSpin.y);
+      const az = Math.abs(s.ballSpin.z);
+      let r = 1, g = 1, b = 1;
+      if (intensity > 0.05) {
+        if (ax >= ay && ax >= az) {
+          // top/back spin — red for topspin (dives), blue for backspin (floats)
+          const isTop = (s.ballSpin.x < 0 && s.ballVel.z < 0) || (s.ballSpin.x > 0 && s.ballVel.z > 0);
+          if (isTop) { r = 1; g = 0.3; b = 0.2; } else { r = 0.3; g = 0.6; b = 1; }
+        } else if (ay >= az) {
+          r = 0.4; g = 1; b = 0.3; // sidespin → green
+        } else {
+          r = 1; g = 0.85; b = 0.2; // gyro spin → amber
+        }
+      }
+      // Fade older points by interpolating toward white at low intensity
+      const baseR = THREE.MathUtils.lerp(1, r, intensity);
+      const baseG = THREE.MathUtils.lerp(1, g, intensity);
+      const baseB = THREE.MathUtils.lerp(1, b, intensity);
+      for (let i = 0; i < TRAIL_N; i++) {
+        trailColors[i * 3]     = baseR;
+        trailColors[i * 3 + 1] = baseG;
+        trailColors[i * 3 + 2] = baseB;
+      }
+      const geom = trailRef.current.geometry as THREE.BufferGeometry;
+      (geom.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+      (geom.attributes.color as THREE.BufferAttribute).needsUpdate = true;
+      // Hide trail entirely while waiting for serve
+      trailRef.current.visible = !s.waitingForServe;
+    }
+
     // throttle UI score updates
     const now = performance.now();
     if (now - lastUpdateUI.current > 200) {
@@ -616,6 +667,15 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       <group ref={aiRef}>
         <PaddleMesh color="#1d4ed8" />
       </group>
+      {/* Spin-colored ball trail */}
+      {/* @ts-ignore — r3f line element typing */}
+      <line ref={trailRef as any}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[trailPositions, 3]} />
+          <bufferAttribute attach="attributes-color" args={[trailColors, 3]} />
+        </bufferGeometry>
+        <lineBasicMaterial vertexColors transparent opacity={0.7} linewidth={2} />
+      </line>
     </>
   );
 }
