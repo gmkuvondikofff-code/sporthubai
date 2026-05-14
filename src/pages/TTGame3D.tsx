@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -16,6 +16,23 @@ const TABLE = {
 };
 const PADDLE = { r: 0.078, t: 0.012, handleH: 0.10 };
 const BALL_R = 0.020; // 40mm
+
+// ======= Realistic ping-pong physics constants =======
+const BALL_MASS = 0.0027;                                           // kg (2.7g)
+const BALL_AREA = Math.PI * BALL_R * BALL_R;                        // m²
+const AIR_DENSITY = 1.225;                                          // kg/m³
+const DRAG_CD = 0.47;                                               // sphere
+// a_drag = -DRAG_K * |v| * v   (quadratic fluid drag)
+const DRAG_K = (0.5 * AIR_DENSITY * DRAG_CD * BALL_AREA) / BALL_MASS;
+// a_magnus = MAGNUS_K * (ω × v) — tuned for visible curves at realistic spin (~100 rad/s)
+const MAGNUS_K = 0.0010;
+const GRAVITY = 9.8;                                                // m/s²
+const REST_TABLE = 0.80;                                            // ball-table coef of restitution
+const REST_PADDLE = 0.78;                                           // ball-paddle coef of restitution
+const TABLE_FRICTION = 0.35;                                        // tangential friction during bounce
+const PADDLE_FRICTION = 0.55;                                       // rubber friction
+const SPIN_DECAY = 0.5;                                             // s⁻¹ exponential decay
+const PHYSICS_SUBSTEPS = 6;                                         // CCD: 6 substeps per frame @60fps ≈ 360Hz
 
 // Player paddle Z range (own half only; cannot cross net)
 const PLAYER_Z_MIN = 0.12;          // close to net
@@ -35,7 +52,7 @@ const COUNTRIES = [
 interface GameState {
   ballPos: THREE.Vector3;
   ballVel: THREE.Vector3;
-  ballSpin: number;          // simple topspin/backspin scalar (Magnus around X)
+  ballSpin: THREE.Vector3;    // angular velocity (rad/s) — full 3D spin vector
   // player paddle (kinematic)
   playerX: number;
   playerY: number;
@@ -63,7 +80,6 @@ interface GameState {
 }
 
 function makeServeState(serving: "player" | "ai" = "player"): GameState {
-  const dir = serving === "player" ? -1 : 1;
   return {
     ballPos: new THREE.Vector3(
       (Math.random() - 0.5) * 0.4,
@@ -71,7 +87,7 @@ function makeServeState(serving: "player" | "ai" = "player"): GameState {
       serving === "player" ? TABLE.l / 2 - 0.15 : -TABLE.l / 2 + 0.15,
     ),
     ballVel: new THREE.Vector3(0, 0, 0),
-    ballSpin: 0,
+    ballSpin: new THREE.Vector3(),
     playerX: 0,
     playerY: TABLE.surfaceY + 0.06,
     playerZ: TABLE.l / 2 + 0.25,
@@ -239,6 +255,10 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
   const ballShadowRef = useRef<THREE.Mesh>(null!);
   const playerRef = useRef<THREE.Group>(null!);
   const aiRef = useRef<THREE.Group>(null!);
+  const trailRef = useRef<THREE.Line>(null!);
+  const TRAIL_N = 32;
+  const trailPositions = useMemo(() => new Float32Array(TRAIL_N * 3), []);
+  const trailColors = useMemo(() => new Float32Array(TRAIL_N * 3), []);
   const lastUpdateUI = useRef(0);
 
   // Predict where the ball will cross a given Z plane (no air drag, simple gravity)
@@ -281,30 +301,31 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     // ======= Waiting-for-serve: ball is held stationary above server's paddle =======
     if (s.waitingForServe) {
       if (s.serving === "player") {
-        // Glue ball just above player's paddle
         s.ballPos.set(s.playerX, s.playerY + 0.18, s.playerZ - 0.05);
         s.ballVel.set(0, 0, 0);
-        // If player swings forward quickly, launch the serve
+        s.ballSpin.set(0, 0, 0);
         if (s.playerVel.z < -1.2) {
+          // Launch serve — derive light topspin from upward swing
           s.ballVel.set(s.playerVel.x * 0.6, 1.6, -3.2 + s.playerVel.z * 0.4);
-          s.ballSpin = 0.5;
+          // Topspin for ball moving -Z: ω.x < 0 (top surface moves with motion)
+          s.ballSpin.set(-Math.max(0, s.playerVel.y) * 25 - 30, 0, 0);
           s.hitByPlayerLast = true;
           s.waitingForServe = false;
           s.lastHitT = performance.now();
         }
       } else {
-        // AI auto-serves after a short delay
         s.ballPos.set(s.aiX, TABLE.surfaceY + 0.22, s.aiZ + 0.05);
         s.ballVel.set(0, 0, 0);
+        s.ballSpin.set(0, 0, 0);
         if (performance.now() - s.rallyStart > 800) {
           s.ballVel.set((Math.random() - 0.5) * 0.6, 1.6, 3.2);
-          s.ballSpin = 0.5;
+          // Topspin for ball moving +Z: ω.x > 0
+          s.ballSpin.set(30, 0, 0);
           s.hitByAILast = true;
           s.waitingForServe = false;
           s.lastHitT = performance.now();
         }
       }
-      // still update transforms below
     }
 
     // ======= AI movement (predictive) =======
@@ -334,84 +355,144 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       s.aiZ += (dz / distXZ) * step;
     }
 
-    // ======= Ball physics =======
-    if (!s.waitingForServe) {
-    // gravity
-    s.ballVel.y -= 9.8 * dt;
-    // stronger air drag → slower ball overall
-    s.ballVel.multiplyScalar(1 - 0.18 * dt);
-    // Magnus from topspin
-    s.ballVel.y -= s.ballSpin * 1.4 * dt;
-    // spin decays
-    s.ballSpin *= Math.exp(-0.4 * dt);
-
-    s.ballPos.addScaledVector(s.ballVel, dt);
-    }
-
-    // ======= Table bounce =======
     const tableTopY = TABLE.surfaceY;
-    if (
-      s.ballPos.y - BALL_R <= tableTopY &&
-      s.ballVel.y < 0 &&
-      Math.abs(s.ballPos.x) <= TABLE.w / 2 &&
-      Math.abs(s.ballPos.z) <= TABLE.l / 2
-    ) {
-      s.ballPos.y = tableTopY + BALL_R;
-      // Energy loss (real TT ball: ~0.94 height ratio → ~0.97 vy coef? use 0.78 for game feel)
-      s.ballVel.y = -s.ballVel.y * 0.80;
-      // Friction slows horizontal a bit, spin transfers to forward velocity
-      s.ballVel.x *= 0.97;
-      s.ballVel.z *= 0.97;
-      // topspin ⇒ accelerates forward in current Z direction; backspin ⇒ slows / reverses
-      s.ballVel.z += s.ballSpin * 0.5 * Math.sign(s.ballVel.z || 1) * -1 * 0; // keep simple; remove
-      if (s.ballPos.z > 0) s.bouncedOnPlayerSide = true;
-      else s.bouncedOnAISide = true;
-    }
 
-    // ======= Net collision =======
-    if (
-      Math.abs(s.ballPos.z) < 0.025 &&
-      s.ballPos.y < TABLE.surfaceY + TABLE.netH + BALL_R &&
-      s.ballPos.y > TABLE.surfaceY &&
-      Math.abs(s.ballPos.x) < TABLE.w / 2 + 0.1
-    ) {
-      // Net touched → instant point to opponent of last hitter
-      const netScorer: "player" | "ai" =
-        s.hitByPlayerLast ? "ai" : s.hitByAILast ? "player" : (s.serving === "player" ? "ai" : "player");
-      onScore(netScorer);
-      return;
-    }
+    // ======= Player paddle face normal (from current orientation) =======
+    const tiltP = THREE.MathUtils.clamp(-s.playerVel.z * 0.15 + 0.5, 0.1, 1.2);
+    const rollP = THREE.MathUtils.clamp(s.playerVel.x * 0.05, -0.4, 0.4);
+    const playerNormal = new THREE.Vector3(0, 0, -1)
+      .applyEuler(new THREE.Euler(tiltP, 0, rollP))
+      .normalize();
+    const playerCenter = new THREE.Vector3(s.playerX, s.playerY, s.playerZ);
 
-    // ======= Player paddle collision =======
+    // ======= Substepped ball physics with CCD =======
     if (!s.waitingForServe) {
-      const dx2 = s.ballPos.x - s.playerX;
-      const dy2 = s.ballPos.y - s.playerY;
-      const dz2 = s.ballPos.z - s.playerZ;
-      // Generous hit volume so the paddle reliably contacts the ball
-      const within = Math.sqrt(dx2 * dx2 + dy2 * dy2) < PADDLE.r + BALL_R + 0.08;
-      const closeZ = Math.abs(dz2) < 0.18 + Math.abs(s.playerVel.z) * dt;
-      const movingToward = s.ballVel.z > 0; // ball traveling toward player (+Z)
-      if (within && closeZ && movingToward) {
-        // Reflect Z, add player's swing
-        const swingZ = s.playerVel.z;            // negative = swinging forward (toward net)
-        const swingY = s.playerVel.y;
-        const swingX = s.playerVel.x;
-        const baseSpeed = Math.abs(s.ballVel.z);
-        // Even softer, lower trajectory → ball doesn't fly up
-        const power = baseSpeed * 0.35 + Math.max(0, -swingZ) * 1.0 + 3.2;
-        s.ballVel.z = -power;
-        // Auto-aim assist: target opponent's current X
-        const aimToAI = (s.aiX - s.playerX);
-        s.ballVel.x = aimToAI * 1.4 + dx2 * 2.5 + swingX * 0.4;
-        // Lower upward velocity so ball stays close to table
-        s.ballVel.y = Math.max(0.9, Math.min(2.0, dy2 * 2.5 + swingY * 0.5 + 1.2));
-        // Reduced spin
-        s.ballSpin = Math.max(-2.0, Math.min(2.0, -swingZ * 0.20 + swingY * -0.12));
-        s.bouncedOnPlayerSide = false;
-        s.bouncedOnAISide = false;
-        s.hitByPlayerLast = true;
-        s.hitByAILast = false;
-        s.lastHitT = performance.now();
+      const N = PHYSICS_SUBSTEPS;
+      const dts = dt / N;
+      const prevPos = new THREE.Vector3();
+      const cross = new THREE.Vector3();
+      const v = s.ballVel;
+      const w = s.ballSpin;
+
+      for (let step = 0; step < N; step++) {
+        // ---- Forces ----
+        // Gravity
+        v.y -= GRAVITY * dts;
+        // Quadratic drag: a = -DRAG_K * |v| * v
+        const speed = v.length();
+        if (speed > 1e-3) {
+          const k = DRAG_K * speed * dts;
+          v.x -= v.x * k;
+          v.y -= v.y * k;
+          v.z -= v.z * k;
+        }
+        // Magnus: a = MAGNUS_K * (ω × v)
+        cross.crossVectors(w, v);
+        v.x += MAGNUS_K * cross.x * dts;
+        v.y += MAGNUS_K * cross.y * dts;
+        v.z += MAGNUS_K * cross.z * dts;
+        // Spin decay
+        w.multiplyScalar(Math.exp(-SPIN_DECAY * dts));
+
+        // ---- Integrate (with CCD via prev position) ----
+        prevPos.copy(s.ballPos);
+        s.ballPos.addScaledVector(v, dts);
+
+        // ---- Table bounce CCD ----
+        if (
+          prevPos.y - BALL_R > tableTopY &&
+          s.ballPos.y - BALL_R <= tableTopY &&
+          v.y < 0
+        ) {
+          const dy = prevPos.y - s.ballPos.y;
+          const t = dy > 1e-6 ? (prevPos.y - (tableTopY + BALL_R)) / dy : 1;
+          const ix = prevPos.x + (s.ballPos.x - prevPos.x) * t;
+          const iz = prevPos.z + (s.ballPos.z - prevPos.z) * t;
+          if (Math.abs(ix) <= TABLE.w / 2 && Math.abs(iz) <= TABLE.l / 2) {
+            s.ballPos.set(ix, tableTopY + BALL_R, iz);
+            // Reflect normal velocity
+            v.y = -v.y * REST_TABLE;
+            // Surface velocity at contact: v_ball + ω × r_contact, r_contact=(0,-R,0)
+            // (a,b,c) × (0,-R,0) = (c·R, 0, -a·R)
+            const sv_x = v.x + w.z * BALL_R;
+            const sv_z = v.z - w.x * BALL_R;
+            // Friction impulse opposes slip → modifies tangential v AND spin
+            v.x -= TABLE_FRICTION * sv_x * 0.5;
+            v.z -= TABLE_FRICTION * sv_z * 0.5;
+            // Spin reduction from friction (impulse couples back to ω)
+            // Δω = -(2.5 * μ / R) * slip (sphere) — simplified
+            w.x += TABLE_FRICTION * sv_z * 1.2;
+            w.z -= TABLE_FRICTION * sv_x * 1.2;
+            w.y *= 0.8;
+            if (iz > 0) s.bouncedOnPlayerSide = true;
+            else s.bouncedOnAISide = true;
+          }
+        }
+
+        // ---- Net collision ----
+        if (
+          Math.abs(s.ballPos.z) < 0.025 &&
+          s.ballPos.y < TABLE.surfaceY + TABLE.netH + BALL_R &&
+          s.ballPos.y > TABLE.surfaceY &&
+          Math.abs(s.ballPos.x) < TABLE.w / 2 + 0.1
+        ) {
+          const netScorer: "player" | "ai" =
+            s.hitByPlayerLast ? "ai" : s.hitByAILast ? "player" : (s.serving === "player" ? "ai" : "player");
+          onScore(netScorer);
+          return;
+        }
+
+        // ---- Player paddle CCD (segment vs sphere around paddle center) ----
+        // Approximate paddle as sphere (radius PADDLE.r) for collision; check if segment prev→cur passes within reach.
+        const segDir = new THREE.Vector3().subVectors(s.ballPos, prevPos);
+        const segLen = segDir.length();
+        const toCenter = new THREE.Vector3().subVectors(playerCenter, prevPos);
+        const tProj = segLen > 1e-6 ? THREE.MathUtils.clamp(toCenter.dot(segDir) / (segLen * segLen), 0, 1) : 0;
+        const closest = new THREE.Vector3().copy(prevPos).addScaledVector(segDir, tProj);
+        const dist = closest.distanceTo(playerCenter);
+        const movingToward = v.z > 0; // ball traveling toward player (+Z)
+        if (dist < PADDLE.r + BALL_R + 0.04 && movingToward) {
+          // Snap ball just in front of paddle face (in +playerNormal direction relative to paddle, but ball comes from +Z)
+          s.ballPos.copy(closest).addScaledVector(playerNormal, -(PADDLE.r + BALL_R) * 0.2);
+          // ===== Velocity transfer (relative-velocity reflection with spin coupling) =====
+          const vRel = new THREE.Vector3().subVectors(v, s.playerVel);
+          const vn = vRel.dot(playerNormal);
+          // Normal component reflected with restitution
+          const vRelN = playerNormal.clone().multiplyScalar(vn);
+          const vRelT = vRel.clone().sub(vRelN);
+          // Apply restitution + tangential friction
+          const vRelN2 = playerNormal.clone().multiplyScalar(-vn * REST_PADDLE);
+          const vRelT2 = vRelT.clone().multiplyScalar(1 - PADDLE_FRICTION * 0.6);
+          // Final velocity = paddle vel + reflected
+          v.copy(s.playerVel).add(vRelN2).add(vRelT2);
+          // Boost forward power so the ball makes it back across
+          const boost = 1.0 + Math.max(0, -s.playerVel.z) * 0.10;
+          v.multiplyScalar(boost);
+          // Auto-aim assist: bias X toward AI a touch
+          v.x += (s.aiX - s.playerX) * 0.4;
+          // Cap absurd verticals so the ball stays in play
+          v.y = THREE.MathUtils.clamp(v.y, -2.0, 3.5);
+
+          // ===== Spin generation from tangential paddle velocity =====
+          // Tangential paddle velocity (in paddle face plane)
+          const vP = s.playerVel.clone();
+          const vPn = playerNormal.clone().multiplyScalar(vP.dot(playerNormal));
+          const vPt = vP.sub(vPn);
+          // Contact point relative to ball center: r_contact = -n * R
+          const rContact = playerNormal.clone().multiplyScalar(-BALL_R);
+          // Solve ω × r = vPt → ω = (r × vPt) / |r|²
+          const omegaContrib = new THREE.Vector3().crossVectors(rContact, vPt).divideScalar(BALL_R * BALL_R);
+          // Couple new spin (mostly replace, keep a bit of old for continuity)
+          w.lerp(omegaContrib, 0.85);
+          // Clamp insane spin rates
+          if (w.length() > 250) w.setLength(250);
+
+          s.bouncedOnPlayerSide = false;
+          s.bouncedOnAISide = false;
+          s.hitByPlayerLast = true;
+          s.hitByAILast = false;
+          s.lastHitT = performance.now();
+        }
       }
     }
 
@@ -447,7 +528,13 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         s.ballVel.x += (Math.random() - 0.5) * err * 2.5;
         s.ballVel.z += (Math.random() - 0.5) * err * 2.0;
         s.ballVel.y = Math.min(s.ballVel.y, 2.2); // cap upward velocity
-        s.ballSpin = (Math.random() * 0.8 + 0.2) * (Math.random() < 0.7 ? 1 : -1) * skill;
+        // AI spin: bias topspin (ω.x > 0 for ball going +Z), occasional sidespin
+        const spinMag = (40 + Math.random() * 60) * skill;
+        s.ballSpin.set(
+          spinMag * (Math.random() < 0.7 ? 1 : -0.5),     // mostly topspin
+          (Math.random() - 0.5) * 30 * skill,              // small sidespin (ω.y)
+          0,
+        );
         s.bouncedOnPlayerSide = false;
         s.bouncedOnAISide = false;
         s.hitByPlayerLast = false;
@@ -503,6 +590,53 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       aiRef.current.rotation.set(-0.6, Math.PI, 0);
     }
 
+    // ======= Spin-colored ball trail =======
+    if (trailRef.current) {
+      // Shift positions back, push current to head
+      for (let i = TRAIL_N - 1; i > 0; i--) {
+        trailPositions[i * 3]     = trailPositions[(i - 1) * 3];
+        trailPositions[i * 3 + 1] = trailPositions[(i - 1) * 3 + 1];
+        trailPositions[i * 3 + 2] = trailPositions[(i - 1) * 3 + 2];
+      }
+      trailPositions[0] = s.ballPos.x;
+      trailPositions[1] = s.ballPos.y;
+      trailPositions[2] = s.ballPos.z;
+      // Color by dominant spin axis & magnitude
+      const wMag = s.ballSpin.length();
+      const intensity = Math.min(1, wMag / 120);
+      // Topspin (ω.x same sign as -v.z direction means dive). Use ω.x + ball direction.
+      // Heuristic: positive ω.x→red (top/back depending on motion), ω.y→green (side), ω.z→blue
+      const ax = Math.abs(s.ballSpin.x);
+      const ay = Math.abs(s.ballSpin.y);
+      const az = Math.abs(s.ballSpin.z);
+      let r = 1, g = 1, b = 1;
+      if (intensity > 0.05) {
+        if (ax >= ay && ax >= az) {
+          // top/back spin — red for topspin (dives), blue for backspin (floats)
+          const isTop = (s.ballSpin.x < 0 && s.ballVel.z < 0) || (s.ballSpin.x > 0 && s.ballVel.z > 0);
+          if (isTop) { r = 1; g = 0.3; b = 0.2; } else { r = 0.3; g = 0.6; b = 1; }
+        } else if (ay >= az) {
+          r = 0.4; g = 1; b = 0.3; // sidespin → green
+        } else {
+          r = 1; g = 0.85; b = 0.2; // gyro spin → amber
+        }
+      }
+      // Fade older points by interpolating toward white at low intensity
+      const baseR = THREE.MathUtils.lerp(1, r, intensity);
+      const baseG = THREE.MathUtils.lerp(1, g, intensity);
+      const baseB = THREE.MathUtils.lerp(1, b, intensity);
+      for (let i = 0; i < TRAIL_N; i++) {
+        trailColors[i * 3]     = baseR;
+        trailColors[i * 3 + 1] = baseG;
+        trailColors[i * 3 + 2] = baseB;
+      }
+      const geom = trailRef.current.geometry as THREE.BufferGeometry;
+      (geom.attributes.position as THREE.BufferAttribute).needsUpdate = true;
+      (geom.attributes.color as THREE.BufferAttribute).needsUpdate = true;
+      // Hide trail entirely while waiting for serve
+      trailRef.current.visible = !s.waitingForServe;
+    }
+
     // throttle UI score updates
     const now = performance.now();
     if (now - lastUpdateUI.current > 200) {
@@ -533,6 +667,15 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       <group ref={aiRef}>
         <PaddleMesh color="#1d4ed8" />
       </group>
+      {/* Spin-colored ball trail */}
+      {/* @ts-ignore — r3f line element typing */}
+      <line ref={trailRef as any}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[trailPositions, 3]} />
+          <bufferAttribute attach="attributes-color" args={[trailColors, 3]} />
+        </bufferGeometry>
+        <lineBasicMaterial vertexColors transparent opacity={0.7} linewidth={2} />
+      </line>
     </>
   );
 }
