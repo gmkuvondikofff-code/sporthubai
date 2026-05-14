@@ -14,19 +14,19 @@ interface ItemWithImage { uz: string; ru: string; en: string; img: string; examp
 
 const TOOLS_ITEMS: ItemWithImage[] = [
   { uz: "Raketka — shakl, gubka, qoplama tanlash", ru: "Ракетка — форма, губка, накладки", en: "Racket — shape, sponge, rubbers",
-    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Table_tennis_racket_and_balls.jpg/320px-Table_tennis_racket_and_balls.jpg",
+    img: "https://images.unsplash.com/photo-1611251135345-99a1ac10783e?w=640&h=400&fit=crop",
     example: { uz: "Misol: Butterfly Timo Boll ALC + Tenergy 05 qoplamasi", ru: "Пример: Butterfly Timo Boll ALC + накладка Tenergy 05", en: "Ex: Butterfly Timo Boll ALC + Tenergy 05 rubber" } },
   { uz: "To'p — ITTF standarti (40+ mm, 3 yulduzli)", ru: "Мяч — стандарт ITTF (40+ мм, 3 звезды)", en: "Ball — ITTF standard (40+ mm, 3-star)",
-    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Ping_pong_ball_white.jpg/320px-Ping_pong_ball_white.jpg",
+    img: "https://images.unsplash.com/photo-1534158914592-062992fbe900?w=640&h=400&fit=crop",
     example: { uz: "Misol: Nittaku Premium 3* (oq, 40+)", ru: "Пример: Nittaku Premium 3* (белый, 40+)", en: "Ex: Nittaku Premium 3* (white, 40+)" } },
   { uz: "Stol — 2.74×1.525 m, balandligi 76 sm", ru: "Стол — 2.74×1.525 м, высота 76 см", en: "Table — 2.74×1.525 m, height 76 cm",
-    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Table_tennis_table.svg/320px-Table_tennis_table.svg.png" },
+    img: "https://images.unsplash.com/photo-1623316023095-3e7d1de15c3a?w=640&h=400&fit=crop" },
   { uz: "To'r — 15.25 sm balandlik", ru: "Сетка — высота 15.25 см", en: "Net — 15.25 cm height",
-    img: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Table_tennis_net_height.svg/320px-Table_tennis_net_height.svg.png" },
+    img: "https://images.unsplash.com/photo-1604216839320-7c11d4ed4768?w=640&h=400&fit=crop" },
   { uz: "Sport kiyim va maxsus krossovkalar", ru: "Спортивная одежда и кроссовки", en: "Sportswear and shoes",
-    img: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&h=300&fit=crop" },
+    img: "https://images.unsplash.com/photo-1599474924187-334a4ae5bd3c?w=640&h=400&fit=crop" },
   { uz: "Raketka g'ilofi va tozalash vositasi", ru: "Чехол и средство очистки", en: "Racket case & cleaner",
-    img: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=400&h=300&fit=crop" },
+    img: "https://images.unsplash.com/photo-1606889464198-fcb18894cf50?w=640&h=400&fit=crop" },
 ];
 
 // 13 ketma-ket video darslik (PL8G9_JOD5NB0XyCH_S09I4zFGtuqhWRty)
@@ -54,12 +54,12 @@ const METHODS_ITEMS: (ItemWithImage & { yt: string })[] = METHODS_VIDEOS.map((v)
 
 const SIMPLE_ITEMS: Record<Exclude<SectionKey, "tools" | "methods">, ItemWithImage[]> = {
   "mini-tour": [
-    { uz: "3-5 ishtirokchi yig'ing", ru: "Соберите 3-5 участников", en: "Gather 3-5 players", img: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=400&h=250&fit=crop" },
-    { uz: "Round-robin grafigini tuzing", ru: "Составьте сетку round-robin", en: "Build round-robin bracket", img: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=400&h=250&fit=crop" },
-    { uz: "Har match: bo3 yoki bo5", ru: "Каждый матч: bo3 или bo5", en: "Each match: bo3 or bo5", img: "https://images.unsplash.com/photo-1606925207923-c2a3c5b3a83d?w=400&h=250&fit=crop" },
-    { uz: "Ballarni jurnalga yozing", ru: "Записывайте очки", en: "Track scores", img: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=400&h=250&fit=crop" },
-    { uz: "G'olibga sertifikat tayyorlang", ru: "Подготовьте сертификат победителю", en: "Prepare winner certificate", img: "https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=400&h=250&fit=crop" },
-    { uz: "AI Coach bilan natijalarni tahlil qiling", ru: "Анализ результатов с AI Coach", en: "Analyze with AI Coach", img: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=250&fit=crop" },
+    { uz: "3-5 ishtirokchi yig'ing", ru: "Соберите 3-5 участников", en: "Gather 3-5 players", img: "https://images.unsplash.com/photo-1622279457486-28dc2e1b3e8a?w=640&h=400&fit=crop" },
+    { uz: "Round-robin grafigini tuzing", ru: "Составьте сетку round-robin", en: "Build round-robin bracket", img: "https://i.ytimg.com/vi/eIVqFSAUkBE/hqdefault.jpg" },
+    { uz: "Har match: bo3 yoki bo5", ru: "Каждый матч: bo3 или bo5", en: "Each match: bo3 or bo5", img: "https://images.unsplash.com/photo-1611251135345-99a1ac10783e?w=640&h=400&fit=crop" },
+    { uz: "Ballarni jurnalga yozing", ru: "Записывайте очки", en: "Track scores", img: "https://images.unsplash.com/photo-1534158914592-062992fbe900?w=640&h=400&fit=crop" },
+    { uz: "G'olibga sertifikat tayyorlang", ru: "Подготовьте сертификат победителю", en: "Prepare winner certificate", img: "https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=640&h=400&fit=crop" },
+    { uz: "AI Coach bilan natijalarni tahlil qiling", ru: "Анализ результатов с AI Coach", en: "Analyze with AI Coach", img: "https://images.unsplash.com/photo-1623316023095-3e7d1de15c3a?w=640&h=400&fit=crop" },
   ],
   "daily-task": [
     { uz: "10 ta topspin servis", ru: "10 топспин подач", en: "10 topspin serves", img: "https://i.ytimg.com/vi/HEYI8O2gM3M/hqdefault.jpg" },
