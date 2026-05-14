@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -16,6 +16,23 @@ const TABLE = {
 };
 const PADDLE = { r: 0.078, t: 0.012, handleH: 0.10 };
 const BALL_R = 0.020; // 40mm
+
+// ======= Realistic ping-pong physics constants =======
+const BALL_MASS = 0.0027;                                           // kg (2.7g)
+const BALL_AREA = Math.PI * BALL_R * BALL_R;                        // m²
+const AIR_DENSITY = 1.225;                                          // kg/m³
+const DRAG_CD = 0.47;                                               // sphere
+// a_drag = -DRAG_K * |v| * v   (quadratic fluid drag)
+const DRAG_K = (0.5 * AIR_DENSITY * DRAG_CD * BALL_AREA) / BALL_MASS;
+// a_magnus = MAGNUS_K * (ω × v) — tuned for visible curves at realistic spin (~100 rad/s)
+const MAGNUS_K = 0.0010;
+const GRAVITY = 9.8;                                                // m/s²
+const REST_TABLE = 0.80;                                            // ball-table coef of restitution
+const REST_PADDLE = 0.78;                                           // ball-paddle coef of restitution
+const TABLE_FRICTION = 0.35;                                        // tangential friction during bounce
+const PADDLE_FRICTION = 0.55;                                       // rubber friction
+const SPIN_DECAY = 0.5;                                             // s⁻¹ exponential decay
+const PHYSICS_SUBSTEPS = 6;                                         // CCD: 6 substeps per frame @60fps ≈ 360Hz
 
 // Player paddle Z range (own half only; cannot cross net)
 const PLAYER_Z_MIN = 0.12;          // close to net
@@ -35,7 +52,7 @@ const COUNTRIES = [
 interface GameState {
   ballPos: THREE.Vector3;
   ballVel: THREE.Vector3;
-  ballSpin: number;          // simple topspin/backspin scalar (Magnus around X)
+  ballSpin: THREE.Vector3;    // angular velocity (rad/s) — full 3D spin vector
   // player paddle (kinematic)
   playerX: number;
   playerY: number;
@@ -63,7 +80,6 @@ interface GameState {
 }
 
 function makeServeState(serving: "player" | "ai" = "player"): GameState {
-  const dir = serving === "player" ? -1 : 1;
   return {
     ballPos: new THREE.Vector3(
       (Math.random() - 0.5) * 0.4,
@@ -71,7 +87,7 @@ function makeServeState(serving: "player" | "ai" = "player"): GameState {
       serving === "player" ? TABLE.l / 2 - 0.15 : -TABLE.l / 2 + 0.15,
     ),
     ballVel: new THREE.Vector3(0, 0, 0),
-    ballSpin: 0,
+    ballSpin: new THREE.Vector3(),
     playerX: 0,
     playerY: TABLE.surfaceY + 0.06,
     playerZ: TABLE.l / 2 + 0.25,
