@@ -40,7 +40,6 @@ const INDICATOR_DEFS = [
 const sessions = [
   { titleKey: "tt.tools", route: "tools", descUz: "Jihozlar va anjomlar", descRu: "Инвентарь и снаряжение", descEn: "Equipment & gear" },
   { titleKey: "tt.methods", route: "methods", descUz: "Amaliy mashqlar", descRu: "Практические упражнения", descEn: "Practical drills" },
-  { titleKey: "tt.miniTour", route: "mini-tour", descUz: "Musobaqalar va o'yinlar", descRu: "Соревнования и игры", descEn: "Tournaments & matches" },
 ];
 
 export default function TableTennisHub() {
@@ -62,11 +61,11 @@ export default function TableTennisHub() {
   const cd = nextComp ? formatCountdown(new Date(nextComp.date), now) : null;
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/login");
-      return;
-    }
     if (user) load();
+    else {
+      setProfile({ display_name: "Mehmon", username: "guest" });
+      setTt({ age: null, level: "beginner", goals: null, training_streak: 0, total_xp: 0 });
+    }
   }, [user, authLoading]);
 
   const load = async () => {
@@ -74,15 +73,12 @@ export default function TableTennisHub() {
     const { data: p } = await supabase
       .from("profiles").select("display_name, user_type, username")
       .eq("user_id", user.id).single();
-    if (p && (p as any).user_type !== "tt_player") {
-      navigate("/dashboard", { replace: true });
-      return;
-    }
     if (p) setProfile(p as TTProfile);
+    else setProfile({ display_name: "Mehmon", username: "guest" });
     const { data: ttd } = await supabase
       .from("tt_players").select("age, level, goals, training_streak, total_xp")
       .eq("user_id", user.id).single();
-    if (ttd) setTt(ttd);
+    setTt(ttd ?? { age: null, level: "beginner", goals: null, training_streak: 0, total_xp: 0 });
     const snap = await fetchProgress(user.id);
     setProgress(snap);
   };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/hooks/useLanguage";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +32,7 @@ export default function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [athleteData, setAthleteData] = useState<AthleteData | null>(null);
   const [activeSportChat, setActiveSportChat] = useState<string | null>(null);
@@ -40,11 +41,15 @@ export default function Dashboard() {
   const [showAddSport, setShowAddSport] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/login");
-      return;
-    }
     if (user) fetchData();
+    else {
+      const t = searchParams.get("type");
+      setProfile({
+        display_name: "Mehmon",
+        user_type: t === "athlete" ? "athlete" : "fan",
+        username: "guest",
+      });
+    }
   }, [user, authLoading]);
 
   const fetchData = async () => {
