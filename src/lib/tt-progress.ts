@@ -7,7 +7,7 @@ export const XP_PER_ITEM = 50;
 
 // Section item counts (must match TTSection content)
 export const SECTION_SIZES: Record<SectionKey, number> = {
-  tools: 6,
+  tools: 4,
   methods: 13,
   "mini-tour": 6,
   "daily-task": 6,

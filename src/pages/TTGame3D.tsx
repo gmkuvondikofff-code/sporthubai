@@ -288,8 +288,8 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
     const yLift = THREE.MathUtils.clamp(inputRef.current.y, 0, 1) * 0.55;
 
     s.playerPrev.set(s.playerX, s.playerY, s.playerZ);
-    s.playerX = THREE.MathUtils.lerp(s.playerX, targetX, 0.35);
-    s.playerZ = THREE.MathUtils.lerp(s.playerZ, targetZ, 0.30);
+    s.playerX = THREE.MathUtils.lerp(s.playerX, targetX, 0.65);
+    s.playerZ = THREE.MathUtils.lerp(s.playerZ, targetZ, 0.60);
     // height oscillates slightly with z (player crouches when reaching forward)
     s.playerY = TABLE.surfaceY + 0.06 + (s.playerZ - PLAYER_Z_MIN) * 0.015 + yLift;
     s.playerVel.set(
@@ -344,8 +344,8 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
       s.aiTargetX = THREE.MathUtils.lerp(s.aiTargetX, s.ballPos.x * 0.4, 0.05);
       s.aiTargetZ = -TABLE.l / 2 - 0.30;
     }
-    // Much slower AI movement → very easy
-    const aiSpeed = 0.7 + difficulty * 0.45 + opponentSkill * 0.3; // m/s
+    // AI movement (a bit faster for harder returns)
+    const aiSpeed = 1.1 + difficulty * 0.55 + opponentSkill * 0.45; // m/s
     const dx = s.aiTargetX - s.aiX;
     const dz = s.aiTargetZ - s.aiZ;
     const distXZ = Math.hypot(dx, dz);
@@ -465,8 +465,8 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
           const vRelT2 = vRelT.clone().multiplyScalar(1 - PADDLE_FRICTION * 0.6);
           // Final velocity = paddle vel + reflected
           v.copy(s.playerVel).add(vRelN2).add(vRelT2);
-          // Boost forward power so the ball makes it back across
-          const boost = 1.0 + Math.max(0, -s.playerVel.z) * 0.10;
+          // Boost forward power so the ball makes it back across (stronger)
+          const boost = 1.25 + Math.max(0, -s.playerVel.z) * 0.18;
           v.multiplyScalar(boost);
           // Auto-aim assist: bias X toward AI a touch
           v.x += (s.aiX - s.playerX) * 0.4;
@@ -516,18 +516,20 @@ function Scene({ stateRef, onScore, inputRef, difficulty, opponentSkill, onUpdat
         // Choose flight time scaled by difficulty (shorter = faster ball)
         // Easier AI: longer flight time → slower, more reachable balls
         // Make AI very simple: lower skill, longer flight time → easier to return
-        const skill = 0.20 + opponentSkill * 0.15 + difficulty * 0.10;
-        const flightT = THREE.MathUtils.clamp(0.95 / Math.max(0.3, skill), 0.75, 1.60);
+        const skill = 0.45 + opponentSkill * 0.25 + difficulty * 0.20;
+        const flightT = THREE.MathUtils.clamp(0.75 / Math.max(0.4, skill), 0.50, 1.15);
         const vz = (aimZ - s.ballPos.z) / flightT;
         const vx = (aimX - s.ballPos.x) / flightT;
         // vy from y0 + vy*t - 0.5*g*t^2 = surfaceY + BALL_R, but allow rise then fall
         const vy = ((TABLE.surfaceY + BALL_R) - y0 + 0.5 * 9.8 * flightT * flightT) / flightT;
         s.ballVel.set(vx, vy, vz);
-        // Much higher error → AI misses and gives easy balls
-        const err = (1 - skill) * 2.2;
-        s.ballVel.x += (Math.random() - 0.5) * err * 2.5;
-        s.ballVel.z += (Math.random() - 0.5) * err * 2.0;
-        s.ballVel.y = Math.min(s.ballVel.y, 2.2); // cap upward velocity
+        // Lower error → AI returns harder & more accurately
+        const err = (1 - skill) * 0.9;
+        s.ballVel.x += (Math.random() - 0.5) * err * 1.2;
+        s.ballVel.z += (Math.random() - 0.5) * err * 1.0;
+        // Extra forward power on the return
+        s.ballVel.multiplyScalar(1.25);
+        s.ballVel.y = Math.min(s.ballVel.y, 2.6);
         // AI spin: bias topspin (ω.x > 0 for ball going +Z), occasional sidespin
         const spinMag = (40 + Math.random() * 60) * skill;
         s.ballSpin.set(
@@ -748,7 +750,7 @@ export default function TTGame3D() {
   useEffect(() => {
     const keys = new Set<string>();
     const tick = () => {
-      const speed = 0.05;
+      const speed = 0.11;
       if (keys.has("ArrowLeft") || keys.has("a")) inputRef.current.x = Math.max(-1, inputRef.current.x - speed);
       if (keys.has("ArrowRight") || keys.has("d")) inputRef.current.x = Math.min(1, inputRef.current.x + speed);
       if (keys.has("ArrowUp") || keys.has("w")) inputRef.current.z = Math.max(-1, inputRef.current.z - speed);

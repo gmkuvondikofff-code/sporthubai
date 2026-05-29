@@ -8,8 +8,6 @@ import { AdminAuthProvider } from "@/hooks/useAdminAuth";
 import { LanguageProvider } from "@/hooks/useLanguage";
 import Navbar from "@/components/Navbar";
 import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
@@ -37,8 +35,6 @@ const App = () => (
               <Navbar />
               <Routes>
                 <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/sport/:sportId" element={<SportPage />} />
                 <Route path="/tt-hub" element={<TableTennisHub />} />

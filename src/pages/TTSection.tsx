@@ -9,24 +9,24 @@ import { ArrowLeft, CheckCircle2, Circle, ExternalLink, PlayCircle, Sparkles } f
 import {
   fetchProgress, toggleCompletion, type ProgressSnapshot, type SectionKey, emptySnapshot, SECTION_SIZES,
 } from "@/lib/tt-progress";
+import rackImg from "@/assets/tt/rackets.webp";
+import tableImg from "@/assets/tt/table.png";
+import ballsImg from "@/assets/tt/balls.webp";
+import netImg from "@/assets/tt/net.webp";
 
 interface ItemWithImage { uz: string; ru: string; en: string; img: string; example?: { uz: string; ru: string; en: string } }
 
 const TOOLS_ITEMS: ItemWithImage[] = [
   { uz: "Raketka — shakl, gubka, qoplama tanlash", ru: "Ракетка — форма, губка, накладки", en: "Racket — shape, sponge, rubbers",
-    img: "https://images.unsplash.com/photo-1611251135345-99a1ac10783e?w=640&h=400&fit=crop",
+    img: rackImg,
     example: { uz: "Misol: Butterfly Timo Boll ALC + Tenergy 05 qoplamasi", ru: "Пример: Butterfly Timo Boll ALC + накладка Tenergy 05", en: "Ex: Butterfly Timo Boll ALC + Tenergy 05 rubber" } },
   { uz: "To'p — ITTF standarti (40+ mm, 3 yulduzli)", ru: "Мяч — стандарт ITTF (40+ мм, 3 звезды)", en: "Ball — ITTF standard (40+ mm, 3-star)",
-    img: "https://images.unsplash.com/photo-1534158914592-062992fbe900?w=640&h=400&fit=crop",
+    img: ballsImg,
     example: { uz: "Misol: Nittaku Premium 3* (oq, 40+)", ru: "Пример: Nittaku Premium 3* (белый, 40+)", en: "Ex: Nittaku Premium 3* (white, 40+)" } },
   { uz: "Stol — 2.74×1.525 m, balandligi 76 sm", ru: "Стол — 2.74×1.525 м, высота 76 см", en: "Table — 2.74×1.525 m, height 76 cm",
-    img: "https://images.unsplash.com/photo-1623316023095-3e7d1de15c3a?w=640&h=400&fit=crop" },
+    img: tableImg },
   { uz: "To'r — 15.25 sm balandlik", ru: "Сетка — высота 15.25 см", en: "Net — 15.25 cm height",
-    img: "https://images.unsplash.com/photo-1604216839320-7c11d4ed4768?w=640&h=400&fit=crop" },
-  { uz: "Sport kiyim va maxsus krossovkalar", ru: "Спортивная одежда и кроссовки", en: "Sportswear and shoes",
-    img: "https://images.unsplash.com/photo-1599474924187-334a4ae5bd3c?w=640&h=400&fit=crop" },
-  { uz: "Raketka g'ilofi va tozalash vositasi", ru: "Чехол и средство очистки", en: "Racket case & cleaner",
-    img: "https://images.unsplash.com/photo-1606889464198-fcb18894cf50?w=640&h=400&fit=crop" },
+    img: netImg },
 ];
 
 // 13 ketma-ket video darslik (PL8G9_JOD5NB0XyCH_S09I4zFGtuqhWRty)

@@ -49,25 +49,17 @@ export default function Navbar() {
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             {t("nav.home")}
           </Link>
-          {user ? (
-            <>
-              <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {t("nav.dashboard")}
-              </Link>
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-1" />
-                {t("nav.logout")}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Link to="/login">
-                <Button variant="ghost" size="sm">{t("nav.login")}</Button>
-              </Link>
-              <Link to="/register">
-                <Button variant="ember" size="sm">{t("nav.register")}</Button>
-              </Link>
-            </>
+          <Link to="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            {t("nav.dashboard")}
+          </Link>
+          <Link to="/tt-hub" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            🏓 Stol tennis
+          </Link>
+          {user && (
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-1" />
+              {t("nav.logout")}
+            </Button>
           )}
         </div>
 
@@ -96,24 +88,16 @@ export default function Navbar() {
           <Link to="/" onClick={() => setMobileOpen(false)} className="text-sm text-foreground">
             {t("nav.home")}
           </Link>
-          {user ? (
-            <>
-              <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm text-foreground">
-                {t("nav.dashboard")}
-              </Link>
-              <button onClick={handleLogout} className="text-sm text-foreground text-left">
-                {t("nav.logout")}
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" onClick={() => setMobileOpen(false)} className="text-sm text-foreground">
-                {t("nav.login")}
-              </Link>
-              <Link to="/register" onClick={() => setMobileOpen(false)} className="text-sm text-foreground">
-                {t("nav.register")}
-              </Link>
-            </>
+          <Link to="/dashboard" onClick={() => setMobileOpen(false)} className="text-sm text-foreground">
+            {t("nav.dashboard")}
+          </Link>
+          <Link to="/tt-hub" onClick={() => setMobileOpen(false)} className="text-sm text-foreground">
+            🏓 Stol tennis
+          </Link>
+          {user && (
+            <button onClick={handleLogout} className="text-sm text-foreground text-left">
+              {t("nav.logout")}
+            </button>
           )}
         </div>
       )}

@@ -1,6 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import SportCard from "@/components/SportCard";
 import { sportCategories } from "@/lib/sports-data";
@@ -9,7 +8,6 @@ import { ArrowRight, Brain, Trophy, Users } from "lucide-react";
 
 export default function Index() {
   const { t } = useLanguage();
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -35,19 +33,28 @@ export default function Index() {
             <Button
               variant="ember"
               size="lg"
-              onClick={() => navigate(user ? "/dashboard" : "/register?type=fan")}
+              onClick={() => navigate("/dashboard?type=fan")}
               className="text-base px-8"
             >
-              {t("hero.cta.fan")}
+              Fan
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button
               variant="ember-outline"
               size="lg"
-              onClick={() => navigate(user ? "/dashboard" : "/register?type=athlete")}
+              onClick={() => navigate("/tt-hub")}
               className="text-base px-8"
             >
-              {t("hero.cta.athlete")}
+              🏓 Stol tennis
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button
+              variant="ember-outline"
+              size="lg"
+              onClick={() => navigate("/dashboard?type=athlete")}
+              className="text-base px-8"
+            >
+              Sportchi
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </div>
@@ -84,7 +91,7 @@ export default function Index() {
               <SportCard
                 key={sport.id}
                 sport={sport}
-                onClick={() => navigate(user ? `/dashboard` : `/register?type=fan`)}
+                onClick={() => navigate(sport.id === "table-tennis" ? "/tt-hub" : `/sport/${sport.id}`)}
               />
             ))}
           </div>
