@@ -44,11 +44,19 @@ export default function Dashboard() {
     if (user) fetchData();
     else {
       const t = searchParams.get("type");
+      const isAth = t === "athlete";
       setProfile({
         display_name: "Mehmon",
-        user_type: t === "athlete" ? "athlete" : "fan",
+        user_type: isAth ? "athlete" : "fan",
         username: "guest",
       });
+      if (isAth) {
+        setAthleteData({
+          sport_type: "Table Tennis",
+          stress_level: 0,
+          upcoming_competition_date: null,
+        });
+      }
     }
   }, [user, authLoading]);
 
