@@ -43,11 +43,6 @@ export default function SportPage() {
     );
   }
 
-  if (!user) {
-    navigate("/login");
-    return null;
-  }
-
   const displayName = sport[nameKey[lang]] as string;
 
   return (
