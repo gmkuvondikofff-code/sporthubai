@@ -45,7 +45,7 @@ export default function Index() {
               onClick={() => navigate("/tt-hub")}
               className="text-base px-8"
             >
-              🏓 Stol tennis
+              Stol tennis
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button
