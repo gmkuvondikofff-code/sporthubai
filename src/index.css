@@ -6,60 +6,61 @@
 
 @layer base {
   :root {
-    --background: 220 15% 10%;
-    --foreground: 30 10% 92%;
+    /* Fit Zone — Aqua Blue → White (Table Tennis) */
+    --background: 200 60% 98%;
+    --foreground: 210 35% 14%;
 
-    --card: 220 14% 13%;
-    --card-foreground: 30 10% 92%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 35% 14%;
 
-    --popover: 220 14% 13%;
-    --popover-foreground: 30 10% 92%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 35% 14%;
 
-    --primary: 20 90% 52%;
+    --primary: 192 92% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 12% 18%;
-    --secondary-foreground: 30 10% 85%;
+    --secondary: 196 60% 94%;
+    --secondary-foreground: 210 35% 18%;
 
-    --muted: 220 12% 16%;
-    --muted-foreground: 220 8% 55%;
+    --muted: 200 40% 95%;
+    --muted-foreground: 210 15% 42%;
 
-    --accent: 20 90% 52%;
+    --accent: 192 92% 45%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 12% 20%;
-    --input: 220 12% 20%;
-    --ring: 20 90% 52%;
+    --border: 200 40% 88%;
+    --input: 200 40% 90%;
+    --ring: 192 92% 45%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 220 15% 8%;
-    --sidebar-foreground: 30 10% 85%;
-    --sidebar-primary: 20 90% 52%;
+    --sidebar-background: 200 60% 97%;
+    --sidebar-foreground: 210 35% 18%;
+    --sidebar-primary: 192 92% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 12% 16%;
-    --sidebar-accent-foreground: 30 10% 85%;
-    --sidebar-border: 220 12% 18%;
-    --sidebar-ring: 20 90% 52%;
+    --sidebar-accent: 196 60% 92%;
+    --sidebar-accent-foreground: 210 35% 18%;
+    --sidebar-border: 200 40% 86%;
+    --sidebar-ring: 192 92% 45%;
 
-    /* Custom tokens */
-    --ember: 20 90% 52%;
-    --ember-glow: 25 100% 60%;
-    --ember-dark: 15 80% 40%;
-    --charcoal: 220 15% 10%;
-    --charcoal-light: 220 14% 15%;
-    --charcoal-lighter: 220 12% 20%;
+    /* Custom tokens — remapped from ember to aqua so existing classes keep working */
+    --ember: 192 92% 45%;
+    --ember-glow: 185 95% 58%;
+    --ember-dark: 205 85% 38%;
+    --charcoal: 200 60% 98%;
+    --charcoal-light: 200 50% 96%;
+    --charcoal-lighter: 200 40% 92%;
     --gold: 40 90% 55%;
     --success: 150 60% 45%;
 
-    --gradient-ember: linear-gradient(135deg, hsl(20 90% 52%), hsl(25 100% 60%));
-    --gradient-dark: linear-gradient(180deg, hsl(220 15% 10%), hsl(220 15% 6%));
-    --gradient-card: linear-gradient(145deg, hsl(220 14% 15%), hsl(220 14% 11%));
-    --shadow-ember: 0 8px 32px -8px hsl(20 90% 52% / 0.3);
-    --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
+    --gradient-ember: linear-gradient(135deg, hsl(192 92% 45%), hsl(185 95% 58%));
+    --gradient-dark: linear-gradient(180deg, hsl(200 60% 98%), hsl(196 60% 94%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(200 50% 97%));
+    --shadow-ember: 0 8px 32px -8px hsl(192 92% 45% / 0.3);
+    --shadow-card: 0 4px 24px -4px hsl(200 50% 40% / 0.12);
   }
 }
 
@@ -99,9 +100,9 @@
   }
 
   .glass-card {
-    background: hsl(220 14% 13% / 0.8);
+    background: hsl(0 0% 100% / 0.75);
     backdrop-filter: blur(12px);
-    border: 1px solid hsl(220 12% 22% / 0.5);
+    border: 1px solid hsl(200 40% 85% / 0.6);
   }
 
   .sport-card-hover {

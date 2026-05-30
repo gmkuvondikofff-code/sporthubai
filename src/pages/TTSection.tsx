@@ -62,20 +62,20 @@ const SIMPLE_ITEMS: Record<Exclude<SectionKey, "tools" | "methods">, ItemWithIma
     { uz: "AI Coach bilan natijalarni tahlil qiling", ru: "Анализ результатов с AI Coach", en: "Analyze with AI Coach", img: "https://images.unsplash.com/photo-1623316023095-3e7d1de15c3a?w=640&h=400&fit=crop" },
   ],
   "daily-task": [
-    { uz: "10 ta topspin servis", ru: "10 топспин подач", en: "10 topspin serves", img: "https://i.ytimg.com/vi/HEYI8O2gM3M/hqdefault.jpg" },
-    { uz: "10 ta backspin servis", ru: "10 бэкспин подач", en: "10 backspin serves", img: "https://i.ytimg.com/vi/qyrHb-3p6sk/hqdefault.jpg" },
-    { uz: "Har birini 1 daqiqa pauza bilan", ru: "С паузой 1 минута", en: "1 min pause between sets", img: "https://images.unsplash.com/photo-1508179170837-be5fec6e1ee0?w=400&h=250&fit=crop" },
-    { uz: "Videoga oling — xatolarni ko'ring", ru: "Снимите на видео", en: "Record video", img: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=400&h=250&fit=crop" },
-    { uz: "AI Coach bilan tahlil", ru: "Анализ через AI Coach", en: "Discuss with AI Coach", img: "https://images.unsplash.com/photo-1531746790731-6c087fecd65a?w=400&h=250&fit=crop" },
-    { uz: "20 dan kamida 15 tasi to'g'ri", ru: "Минимум 15 из 20 точно", en: "At least 15/20 accurate", img: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=400&h=250&fit=crop" },
+    { uz: "10 ta topspin servis", ru: "10 топспин подач", en: "10 topspin serves", img: "" },
+    { uz: "10 ta backspin servis", ru: "10 бэкспин подач", en: "10 backspin serves", img: "" },
+    { uz: "Har birini 1 daqiqa pauza bilan", ru: "С паузой 1 минута", en: "1 min pause between sets", img: "" },
+    { uz: "Videoga oling — xatolarni ko'ring", ru: "Снимите на видео", en: "Record video", img: "" },
+    { uz: "AI Coach bilan tahlil", ru: "Анализ через AI Coach", en: "Discuss with AI Coach", img: "" },
+    { uz: "20 dan kamida 15 tasi to'g'ri", ru: "Минимум 15 из 20 точно", en: "At least 15/20 accurate", img: "" },
   ],
   training: [
-    { uz: "Isinish — 10 daqiqa", ru: "Разминка — 10 мин", en: "Warm-up — 10 min", img: "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=250&fit=crop" },
-    { uz: "Texnik mashqlar — 20 daqiqa", ru: "Технические упр. — 20 мин", en: "Technical drills — 20 min", img: "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=400&h=250&fit=crop" },
-    { uz: "Multiball — 15 daqiqa", ru: "Мультибол — 15 мин", en: "Multiball — 15 min", img: "https://i.ytimg.com/vi/UxIx5J9aV0o/hqdefault.jpg" },
-    { uz: "O'yin (match) — 10 daqiqa", ru: "Игра — 10 мин", en: "Match play — 10 min", img: "https://images.unsplash.com/photo-1606925207923-c2a3c5b3a83d?w=400&h=250&fit=crop" },
-    { uz: "Stretch va sovutish — 5 daqiqa", ru: "Растяжка — 5 мин", en: "Cool-down — 5 min", img: "https://images.unsplash.com/photo-1552693673-1bf958298935?w=400&h=250&fit=crop" },
-    { uz: "Natijalarni jurnalga yozing", ru: "Запишите результаты", en: "Log results", img: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=400&h=250&fit=crop" },
+    { uz: "Isinish — 10 daqiqa", ru: "Разминка — 10 мин", en: "Warm-up — 10 min", img: "" },
+    { uz: "Texnik mashqlar — 20 daqiqa", ru: "Технические упр. — 20 мин", en: "Technical drills — 20 min", img: "" },
+    { uz: "Multiball — 15 daqiqa", ru: "Мультибол — 15 мин", en: "Multiball — 15 min", img: "" },
+    { uz: "O'yin (match) — 10 daqiqa", ru: "Игра — 10 мин", en: "Match play — 10 min", img: "" },
+    { uz: "Stretch va sovutish — 5 daqiqa", ru: "Растяжка — 5 мин", en: "Cool-down — 5 min", img: "" },
+    { uz: "Natijalarni jurnalga yozing", ru: "Запишите результаты", en: "Log results", img: "" },
   ],
 };
 
@@ -173,14 +173,16 @@ export default function TTSection() {
             const isDone = completedSet.has(i);
             return (
               <div key={i} className={`glass-card rounded-2xl overflow-hidden border transition-all ${isDone ? "border-primary/60" : "border-border"}`}>
-                <div className="relative aspect-video bg-secondary">
-                  <img src={item.img} alt={c(item)} loading="lazy" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                  {item.yt && (
-                    <a href={item.yt} target="_blank" rel="noopener noreferrer" className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group">
-                      <PlayCircle className="h-14 w-14 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
-                    </a>
-                  )}
-                </div>
+                {item.img && (
+                  <div className="relative aspect-video bg-secondary">
+                    <img src={item.img} alt={c(item)} loading="lazy" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    {item.yt && (
+                      <a href={item.yt} target="_blank" rel="noopener noreferrer" className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group">
+                        <PlayCircle className="h-14 w-14 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
+                      </a>
+                    )}
+                  </div>
+                )}
                 <div className="p-4 space-y-3">
                   <div className="flex items-start gap-2">
                     {isDone ? <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" /> : <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />}

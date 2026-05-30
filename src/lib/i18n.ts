@@ -2,7 +2,7 @@ export type Language = "uz" | "ru" | "en";
 
 export const translations: Record<Language, Record<string, string>> = {
   uz: {
-    "app.title": "SportAI Hub",
+    "app.title": "Fit Zone",
     "app.subtitle": "Sport intellekti — sizning shaxsiy murabbiyngiz",
     "nav.home": "Bosh sahifa",
     "nav.dashboard": "Dashboard",
@@ -66,7 +66,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "tt.askAi": "Stol tennisi bo'yicha savol bering",
   },
   ru: {
-    "app.title": "SportAI Hub",
+    "app.title": "Fit Zone",
     "app.subtitle": "Спортивный интеллект — ваш персональный тренер",
     "nav.home": "Главная",
     "nav.dashboard": "Панель",
@@ -130,7 +130,7 @@ export const translations: Record<Language, Record<string, string>> = {
     "tt.askAi": "Задайте вопрос по настольному теннису",
   },
   en: {
-    "app.title": "SportAI Hub",
+    "app.title": "Fit Zone",
     "app.subtitle": "Sport intelligence — your personal coach",
     "nav.home": "Home",
     "nav.dashboard": "Dashboard",
