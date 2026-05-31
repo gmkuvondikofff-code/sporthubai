@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import AIChat from "@/components/AIChat";
-import { ArrowLeft, CheckCircle2, Circle, ExternalLink, PlayCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, ExternalLink, PlayCircle, Sparkles, X } from "lucide-react";
 import {
   fetchProgress, toggleCompletion, type ProgressSnapshot, type SectionKey, emptySnapshot, SECTION_SIZES,
 } from "@/lib/tt-progress";
@@ -34,8 +34,8 @@ const PLAYLIST = "PL8G9_JOD5NB0XyCH_S09I4zFGtuqhWRty";
 const ytUrl = (id: string) => `https://www.youtube.com/watch?v=${id}&list=${PLAYLIST}`;
 const ytImg = (id: string) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 const METHODS_VIDEOS: { id: string; uz: string; ru: string; en: string }[] = [
-  { id: "sFOPqdjSmW4", uz: "1-dars: Kirish va asoslar", ru: "Урок 1: Введение и основы", en: "Lesson 1: Intro & basics" },
-  { id: "SU4sksLuQQY", uz: "2-dars: Raketkani ushlash", ru: "Урок 2: Хват ракетки", en: "Lesson 2: Grip" },
+  { id: "SU4sksLuQQY", uz: "1-dars: Kirish va asoslar", ru: "Урок 1: Введение и основы", en: "Lesson 1: Intro & basics" },
+  { id: "5QL60aEiFiw", uz: "2-dars: Raketkani ushlash", ru: "Урок 2: Хват ракетки", en: "Lesson 2: Grip" },
   { id: "cLh0B0xfmsg", uz: "3-dars: Asosiy stoyka", ru: "Урок 3: Базовая стойка", en: "Lesson 3: Stance" },
   { id: "o6RWbZFB0oE", uz: "4-dars: Forehand zarba", ru: "Урок 4: Форхенд", en: "Lesson 4: Forehand" },
   { id: "pk4o_oyqpGE", uz: "5-dars: Backhand zarba", ru: "Урок 5: Бэкхенд", en: "Lesson 5: Backhand" },
@@ -49,7 +49,7 @@ const METHODS_VIDEOS: { id: string; uz: string; ru: string; en: string }[] = [
   { id: "yAs01uVtOMQ", uz: "13-dars: Match va amaliyot", ru: "Урок 13: Матч и практика", en: "Lesson 13: Match practice" },
 ];
 const METHODS_ITEMS: (ItemWithImage & { yt: string })[] = METHODS_VIDEOS.map((v) => ({
-  uz: v.uz, ru: v.ru, en: v.en, img: ytImg(v.id), yt: ytUrl(v.id),
+  uz: v.uz, ru: v.ru, en: v.en, img: ytImg(v.id), yt: ytUrl(v.id), ytId: v.id,
 }));
 
 const SIMPLE_ITEMS: Record<Exclude<SectionKey, "tools" | "methods">, ItemWithImage[]> = {
