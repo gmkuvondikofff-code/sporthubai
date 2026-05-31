@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import AIChat from "@/components/AIChat";
-import { ArrowLeft, CheckCircle2, Circle, ExternalLink, PlayCircle, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Circle, ExternalLink, PlayCircle, Sparkles, X } from "lucide-react";
 import {
   fetchProgress, toggleCompletion, type ProgressSnapshot, type SectionKey, emptySnapshot, SECTION_SIZES,
 } from "@/lib/tt-progress";
@@ -15,6 +15,7 @@ import ballsImg from "@/assets/tt/balls.webp";
 import netImg from "@/assets/tt/net.webp";
 
 interface ItemWithImage { uz: string; ru: string; en: string; img: string; example?: { uz: string; ru: string; en: string } }
+interface VideoItem extends ItemWithImage { yt?: string; ytId?: string }
 
 const TOOLS_ITEMS: ItemWithImage[] = [
   { uz: "Raketka — shakl, gubka, qoplama tanlash", ru: "Ракетка — форма, губка, накладки", en: "Racket — shape, sponge, rubbers",
@@ -34,8 +35,8 @@ const PLAYLIST = "PL8G9_JOD5NB0XyCH_S09I4zFGtuqhWRty";
 const ytUrl = (id: string) => `https://www.youtube.com/watch?v=${id}&list=${PLAYLIST}`;
 const ytImg = (id: string) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 const METHODS_VIDEOS: { id: string; uz: string; ru: string; en: string }[] = [
-  { id: "sFOPqdjSmW4", uz: "1-dars: Kirish va asoslar", ru: "Урок 1: Введение и основы", en: "Lesson 1: Intro & basics" },
-  { id: "SU4sksLuQQY", uz: "2-dars: Raketkani ushlash", ru: "Урок 2: Хват ракетки", en: "Lesson 2: Grip" },
+  { id: "SU4sksLuQQY", uz: "1-dars: Kirish va asoslar", ru: "Урок 1: Введение и основы", en: "Lesson 1: Intro & basics" },
+  { id: "5QL60aEiFiw", uz: "2-dars: Raketkani ushlash", ru: "Урок 2: Хват ракетки", en: "Lesson 2: Grip" },
   { id: "cLh0B0xfmsg", uz: "3-dars: Asosiy stoyka", ru: "Урок 3: Базовая стойка", en: "Lesson 3: Stance" },
   { id: "o6RWbZFB0oE", uz: "4-dars: Forehand zarba", ru: "Урок 4: Форхенд", en: "Lesson 4: Forehand" },
   { id: "pk4o_oyqpGE", uz: "5-dars: Backhand zarba", ru: "Урок 5: Бэкхенд", en: "Lesson 5: Backhand" },
@@ -49,7 +50,7 @@ const METHODS_VIDEOS: { id: string; uz: string; ru: string; en: string }[] = [
   { id: "yAs01uVtOMQ", uz: "13-dars: Match va amaliyot", ru: "Урок 13: Матч и практика", en: "Lesson 13: Match practice" },
 ];
 const METHODS_ITEMS: (ItemWithImage & { yt: string })[] = METHODS_VIDEOS.map((v) => ({
-  uz: v.uz, ru: v.ru, en: v.en, img: ytImg(v.id), yt: ytUrl(v.id),
+  uz: v.uz, ru: v.ru, en: v.en, img: ytImg(v.id), yt: ytUrl(v.id), ytId: v.id,
 }));
 
 const SIMPLE_ITEMS: Record<Exclude<SectionKey, "tools" | "methods">, ItemWithImage[]> = {
@@ -99,6 +100,7 @@ export default function TTSection() {
   const { toast } = useToast();
   const [progress, setProgress] = useState<ProgressSnapshot>(emptySnapshot());
   const [busy, setBusy] = useState<number | null>(null);
+  const [playingId, setPlayingId] = useState<string | null>(null);
   const key = (section as SectionKey) ?? "tools";
   const meta = TITLES[key];
 
@@ -106,7 +108,7 @@ export default function TTSection() {
 
   if (!meta) return <div className="min-h-screen pt-24 px-4 text-center text-muted-foreground">Section not found. <Link to="/tt-hub" className="text-primary underline">Back</Link></div>;
 
-  const items: (ItemWithImage & { yt?: string })[] =
+  const items: VideoItem[] =
     key === "tools" ? TOOLS_ITEMS :
     key === "methods" ? METHODS_ITEMS :
     SIMPLE_ITEMS[key];
@@ -176,10 +178,10 @@ export default function TTSection() {
                 {item.img && (
                   <div className="relative aspect-video bg-secondary">
                     <img src={item.img} alt={c(item)} loading="lazy" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                    {item.yt && (
-                      <a href={item.yt} target="_blank" rel="noopener noreferrer" className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group">
+                    {item.ytId && (
+                      <button type="button" onClick={() => setPlayingId(item.ytId!)} className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group">
                         <PlayCircle className="h-14 w-14 text-white drop-shadow-lg group-hover:scale-110 transition-transform" />
-                      </a>
+                      </button>
                     )}
                   </div>
                 )}
@@ -192,11 +194,9 @@ export default function TTSection() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    {item.yt && (
-                      <Button asChild size="sm" variant="outline" className="flex-1">
-                        <a href={item.yt} target="_blank" rel="noopener noreferrer">
-                          <PlayCircle className="h-4 w-4 mr-1" /> {watchLabel}
-                        </a>
+                    {item.ytId && (
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => setPlayingId(item.ytId!)}>
+                        <PlayCircle className="h-4 w-4 mr-1" /> {watchLabel}
                       </Button>
                     )}
                     <Button size="sm" variant={isDone ? "outline" : "ember"} className="flex-1" disabled={busy === i} onClick={() => onToggle(i)}>
@@ -240,6 +240,23 @@ export default function TTSection() {
           <AIChat chatType="sport" sportContext={`Table Tennis - ${c(meta)}`} />
         </div>
       </div>
+
+      {playingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setPlayingId(null)}>
+          <div className="relative w-full max-w-4xl aspect-video" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setPlayingId(null)} className="absolute -top-12 right-0 text-white/90 hover:text-white inline-flex items-center gap-1 text-sm">
+              <X className="h-5 w-5" /> {lang === "ru" ? "Закрыть" : lang === "en" ? "Close" : "Yopish"}
+            </button>
+            <iframe
+              className="w-full h-full rounded-xl shadow-2xl"
+              src={`https://www.youtube.com/embed/${playingId}?autoplay=1&rel=0&list=${PLAYLIST}`}
+              title="YouTube video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
